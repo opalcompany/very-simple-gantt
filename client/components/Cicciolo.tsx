@@ -41,7 +41,7 @@ export const Cicciolo: React.FC = () => {
         }
 
         const updateChart = () => {
-            gantt.loadBars;
+            gantt.loadBars();
             /*
             svg.selectAll("rect")
                 .data(bars)
