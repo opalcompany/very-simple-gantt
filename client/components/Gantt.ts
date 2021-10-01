@@ -20,17 +20,16 @@ export class Gantt {
 
     public loadBars(){
         console.log("ci provo");
-
-        /*
+        
         this.svg.selectAll("rect")
         .data(this.bars)        
-        .transition().duration(1000)
+        .transition().duration(750)
         .attr("x", (r: { x: any; }) => r.x)
         .attr("y", (r: { y: any; }) => r.y)
         .attr("width", (r: { width: any; }) => r.width)
         .attr("height", (r: { height: any; }) => r.height)  
-        */
         
+        /*
         this.svg.selectAll("rect")
         .enter()
         .append("rect")
@@ -38,26 +37,24 @@ export class Gantt {
         .attr("y", 100)
         .attr("width", 1000)
         .attr("height", 1000)          
+        */
 
 
         this.svg.selectAll("rect")
         .data(this.bars)
         .enter()
         .append("rect")
-        .attr("x", 100)
-        .attr("y", 100)
-        .attr("width", 1000)
-        .attr("height", 1000)          
-        //.transition().duration(1000)
-        //.attr("x", (r: { x: any; }) => r.x)
-        //.attr("y", (r: { y: any; }) => r.y)
-        //.attr("width", (r: { width: any; }) => r.width)
-        //.attr("height", (r: { height: any; }) => r.height)
+        .transition().duration(1000)
+        .attr("x", (r: { x: any; }) => r.x)
+        .attr("y", (r: { y: any; }) => r.y)
+        .attr("width", (r: { width: any; }) => r.width)
+        .attr("height", (r: { height: any; }) => r.height)
         
         this.svg.selectAll("rect")
         .data(this.bars).exit().remove()     
         
         this.svg.on("click", (e: { target: any; }) => { console.log("clic! " + d3.select(e.target).datum()) })
+        
     }
 
     constructor(container : any) {
