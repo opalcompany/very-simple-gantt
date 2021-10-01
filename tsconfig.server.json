@@ -5,6 +5,7 @@
   ],
   "compilerOptions": {
     "module": "CommonJS", // classic format that Node.js understands
+    "sourceMap": true,
     "esModuleInterop": true, // allow imports of modules in ES format
     "skipLibCheck": true, // only check types we refer to from our code
     "forceConsistentCasingInFileNames": true, // prevents cross-OS problems
