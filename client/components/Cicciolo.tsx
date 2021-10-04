@@ -1,8 +1,15 @@
 import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
-import {GanttBar} from './GanttBar'
-import {Gantt} from './Gantt'
+import { GanttBar } from './GanttBar'
+import { Gantt } from './Gantt'
+import { GanttDataProvider } from './GanttDataProvider';
 
+class DataProvider implements GanttDataProvider{
+    public GetRows() : number
+    {
+        return 6;
+    }
+}
 
 export const Cicciolo: React.FC = () => {    
 
@@ -15,7 +22,10 @@ export const Cicciolo: React.FC = () => {
     /* The useEffect Hook is for running side effects outside of React,
        for instance inserting elements into the DOM using D3 */    
     useEffect(() => {
-        const gantt = new Gantt(d3Container);        
+        const dt = new DataProvider;
+        const gantt = new Gantt(d3Container, dt); 
+        gantt.startDate = new Date(2021, 9, 1);
+        gantt.endDate = new Date(2021, 9, 30);
         gantt.init();
 
 /*        
@@ -28,9 +38,9 @@ export const Cicciolo: React.FC = () => {
         const bars: Bar[] = []
         */
 
-        for (let i = 0; i < 1000; i++) {
+        for (let i = 0; i < 10; i++) {
             const x = -100 + Math.random() * (gantt.width + 200)
-            const y = -100 + Math.random() * (gantt.height + 200)
+            const y = -100 + Math.random() * (gantt.height() + 200)
             let b = new GanttBar;
             b.x = x;
             b.y = y;
