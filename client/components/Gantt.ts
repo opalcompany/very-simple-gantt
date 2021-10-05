@@ -6,7 +6,7 @@ import { GanttDataProvider } from './GanttDataProvider';
 export class Gantt {
     private svg: any;
     private d3Container : any;  
-    private timebarHeight : number = 50;
+    private timebarHeight : number = 60;
     
     public width : number = 2000;
 
@@ -18,7 +18,7 @@ export class Gantt {
     public rowHeight : number = 100;
 
     public height() : number {
-        return this.rowHeight * this.dataProvider.GetRows();
+        return (this.rowHeight * this.dataProvider.GetRows()) + this.timebarHeight;
     }    
         
     public init() {        
@@ -48,7 +48,8 @@ export class Gantt {
         .data(this.bars)        
         .transition().duration(750)
         .attr("x", (r: { x: any; }) => r.x)
-        .attr("y", (r: { y: any; }) => r.y)
+        .attr("y", (r: { row: any; }) => (r.row * this.rowHeight) + this.timebarHeight)
+        //.attr("y", (r: { y: any; }) => r.y)
         .attr("width", (r: { width: any; }) => r.width)
         .attr("height", (r: { height: any; }) => r.height)  
         
@@ -58,10 +59,10 @@ export class Gantt {
         .enter()
         .append("rect")
         .transition().duration(750)
-        .attr("x", (r: { x: any; }) => r.x)
-        .attr("y", (r: { y: any; }) => r.y)
-        .attr("width", (r: { width: any; }) => r.width)
-        .attr("height", (r: { height: any; }) => r.height)
+        .attr("x", (bar: { x: number; }) => bar.x)
+        .attr("y", (bar: { row : number; height: number; }) => (bar.row * this.rowHeight) + this.timebarHeight + ((this.rowHeight - bar.height) / 2) )
+        .attr("width", (bar: { width: any; }) => bar.width)
+        .attr("height", (bar: { height: number; }) => bar.height)
         
         
         this.svg.selectAll("rect")

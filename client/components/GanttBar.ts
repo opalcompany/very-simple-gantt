@@ -1,4 +1,5 @@
 export class GanttBar {
+    public row : number = 0;
     public x : Number;
     public y : Number;
     public width : Number;

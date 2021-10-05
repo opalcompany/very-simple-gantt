@@ -38,12 +38,13 @@ export const Cicciolo: React.FC = () => {
         const bars: Bar[] = []
         */
 
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < 18; i++) {
             const x = -100 + Math.random() * (gantt.width + 200)
             const y = -100 + Math.random() * (gantt.height() + 200)
             let b = new GanttBar;
             b.x = x;
             b.y = y;
+            b.row = i%6;
             b.width = 80;
             b.height = 50;
             gantt.bars.push(b);
