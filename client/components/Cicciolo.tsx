@@ -11,6 +11,13 @@ class DataProvider implements GanttDataProvider{
     }
 }
 
+function randomDate(start: Date, end: Date) {
+    var d = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
+    console.log("start:" + start + " end:" + end + " date:" + d);
+    return d;
+
+  }
+
 export const Cicciolo: React.FC = () => {    
 
     /* The useRef Hook creates a variable that "holds on" to a value across rendering
@@ -47,7 +54,10 @@ export const Cicciolo: React.FC = () => {
             b.row = i%6;
             b.width = 80;
             b.height = 50;
+            b.startTime = randomDate(gantt.startDate, gantt.endDate);
+            b.endTime = randomDate(b.startTime, gantt.endDate);
             gantt.bars.push(b);
+            
             //bars.push({ x: x, y: y, w: 80, h: 50 })
         }
 

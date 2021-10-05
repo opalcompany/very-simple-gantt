@@ -1,10 +1,14 @@
 // https://betterprogramming.pub/add-an-html-canvas-into-your-react-app-176dab099a79
+// https://medium.com/@PepsRyuu/why-i-no-longer-use-d3-js-b8288f306c9a
+
 import * as d3 from 'd3';
 import { GanttBar } from "./GanttBar"
 import { GanttDataProvider } from './GanttDataProvider';
 
 export class Gantt {
     private svg: any;
+    private scale : any;
+    private xAxis : any;
     private d3Container : any;  
     private timebarHeight : number = 60;
     
@@ -27,18 +31,18 @@ export class Gantt {
         .attr("width", this.width)
         .attr("height", this.height());        
 
-        var x =  d3.scaleTime()
+        this.scale =  d3.scaleTime()
         .range([0, this.width])
-        .domain([this.startDate, this.endDate]);
+        .domain([this.startDate, this.endDate]);        
 
-        var xAxis = d3.axisTop(x)
+        this.xAxis = d3.axisTop(this.scale)
         .ticks(d3.timeDay);
-        //.tickFormat(d=>d3.timeFormat("%B %Y")(d));        
+        //.tickFormat(d=>d3.timeFormat("%B %Y")(d));                
        
         this.svg
         .append("g")
-        .attr("transform", "translate(0,50)")      // This controls the vertical position of the Axis
-        .call(xAxis);
+        .attr("transform", "translate(0," + this.timebarHeight + ")")      // This controls the vertical position of the Axis
+        .call(this.xAxis);
     }
 
     public loadBars(){
@@ -47,11 +51,13 @@ export class Gantt {
         this.svg.selectAll("rect")
         .data(this.bars)        
         .transition().duration(750)
-        .attr("x", (r: { x: any; }) => r.x)
-        .attr("y", (r: { row: any; }) => (r.row * this.rowHeight) + this.timebarHeight)
-        //.attr("y", (r: { y: any; }) => r.y)
-        .attr("width", (r: { width: any; }) => r.width)
-        .attr("height", (r: { height: any; }) => r.height)  
+        //.attr("x", (r: { x: any; }) => r.x)
+        .attr("x", (bar: { startTime: Date; }) => this.xAxis.scale(bar.startTime))
+        .attr("y", (bar: { row : number; height: number; }) => (bar.row * this.rowHeight) + this.timebarHeight + ((this.rowHeight - bar.height) / 2) )
+        .attr("width", (bar: { width: any; }) => bar.width)
+        .attr("height", (bar: { height: number; }) => bar.height)
+
+        // function (d) { return (scale(d)); }
         
                
         this.svg.selectAll("rect")
@@ -59,7 +65,8 @@ export class Gantt {
         .enter()
         .append("rect")
         .transition().duration(750)
-        .attr("x", (bar: { x: number; }) => bar.x)
+        //.attr("x", (bar: { x: number; }) => bar.x)
+        .attr("x", (bar: { startTime: Date; }) => this.xAxis.scale(bar.startTime))
         .attr("y", (bar: { row : number; height: number; }) => (bar.row * this.rowHeight) + this.timebarHeight + ((this.rowHeight - bar.height) / 2) )
         .attr("width", (bar: { width: any; }) => bar.width)
         .attr("height", (bar: { height: number; }) => bar.height)
