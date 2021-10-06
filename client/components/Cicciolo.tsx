@@ -35,66 +35,22 @@ export const Cicciolo: React.FC = () => {
         gantt.endDate = new Date(2021, 9, 30);
         gantt.init();
 
-/*        
-        const svg = d3.select(d3Container.current)
-            .append("svg")
-            .attr("width", width)
-            .attr("height", height)
-            */
-/*
-        const bars: Bar[] = []
-        */
-
         for (let i = 0; i < 18; i++) {
-            const x = -100 + Math.random() * (gantt.width + 200)
-            const y = -100 + Math.random() * (gantt.height() + 200)
             let b = new GanttBar;
-            b.x = x;
-            b.y = y;
             b.row = i%6;
-            b.width = 80;
-            b.height = 50;
             b.startTime = randomDate(gantt.startDate, gantt.endDate);
-            b.endTime = randomDate(b.startTime, gantt.endDate);
+            b.endTime = randomDate(b.startTime, gantt.endDate);            
+            b.height = 50;
+            b.barColor = d3.interpolateRainbow(Math.random());
+            b.caption = "bar #";
             gantt.bars.push(b);
-            
-            //bars.push({ x: x, y: y, w: 80, h: 50 })
         }
 
         const updateChart = () => {
             gantt.loadBars();
-            /*
-            svg.selectAll("rect")
-                .data(bars)
-                .transition().duration(750)
-                .attr("x", r => r.x)
-                .attr("y", r => r.y)
-                .attr("width", r => r.w)
-                .attr("height", r => r.h)
-
-            svg.selectAll("rect")
-                .data(bars)
-                .enter()
-                .append("rect")
-                .transition().duration(1000)
-                .attr("x", r => r.x)
-                .attr("y", r => r.y)
-                .attr("width", r => r.w)
-                .attr("height", r => r.h)
-                
-                
-                
-
-            svg.selectAll("rect")
-                .data(bars).exit().remove()
-
-            
-            svg.on("click", e => { console.log("clic! " + d3.select(e.target).datum()) })
-            */
         }
 
         updateChart();
-
     })
 
     return <div style={{ height: 400, overflow: "scroll" }}>

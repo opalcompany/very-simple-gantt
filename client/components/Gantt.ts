@@ -11,6 +11,7 @@ export class Gantt {
     private xAxis : any;
     private d3Container : any;  
     private timebarHeight : number = 60;
+    private svgElementHorizontalLines : any;
     
     public width : number = 2000;
 
@@ -20,6 +21,7 @@ export class Gantt {
     public startDate : Date;
     public endDate : Date;
     public rowHeight : number = 100;
+    public horizontalLinesColor : string = "#cbcdd6";
 
     public height() : number {
         return (this.rowHeight * this.dataProvider.GetRows()) + this.timebarHeight;
@@ -43,37 +45,50 @@ export class Gantt {
         .append("g")
         .attr("transform", "translate(0," + this.timebarHeight + ")")      // This controls the vertical position of the Axis
         .call(this.xAxis);
+
+        this.svgElementHorizontalLines = this.svg.append("g")
+          .attr("stroke", this.horizontalLinesColor);
+
+        var i : number;        
+        for (i = 0; i < this.dataProvider.GetRows(); i++)
+        {
+          this.svgElementHorizontalLines.append("line")
+          .attr("x1", 0)
+          .attr("x2", this.width)
+          .attr("y1", this.timebarHeight + (i * this.rowHeight))
+          .attr("y2", this.timebarHeight + (i * this.rowHeight))          
+        }        
+
     }
 
     public loadBars(){
-        console.log("ci provo");
-        
-        this.svg.selectAll("rect")
-        .data(this.bars)        
-        .transition().duration(750)
-        //.attr("x", (r: { x: any; }) => r.x)
-        .attr("x", (bar: { startTime: Date; }) => this.xAxis.scale(bar.startTime))
-        .attr("y", (bar: { row : number; height: number; }) => (bar.row * this.rowHeight) + this.timebarHeight + ((this.rowHeight - bar.height) / 2) )
-        .attr("width", (bar: { width: any; }) => bar.width)
-        .attr("height", (bar: { height: number; }) => bar.height)
-
-        // function (d) { return (scale(d)); }
-        
-               
+       
         this.svg.selectAll("rect")
         .data(this.bars)
         .enter()
-        .append("rect")
-        .transition().duration(750)
-        //.attr("x", (bar: { x: number; }) => bar.x)
-        .attr("x", (bar: { startTime: Date; }) => this.xAxis.scale(bar.startTime))
-        .attr("y", (bar: { row : number; height: number; }) => (bar.row * this.rowHeight) + this.timebarHeight + ((this.rowHeight - bar.height) / 2) )
-        .attr("width", (bar: { width: any; }) => bar.width)
-        .attr("height", (bar: { height: number; }) => bar.height)
+        .append("g")
+        .append("rect")        
+        .attr("x", (bar: GanttBar) => this.scale(bar.startTime))
+        .attr("y", (bar: GanttBar) => (bar.row * this.rowHeight) + this.timebarHeight + ((this.rowHeight - bar.height) / 2) )
+        .attr("width", (bar: GanttBar) => bar.width(this.scale))        
+        .attr("height", (bar: GanttBar) => bar.height)
+        .attr("fill", (bar: GanttBar) => bar.barColor)
+        .append("text", (bar: GanttBar) => bar.caption)
         
-        
-        this.svg.selectAll("rect")
-        .data(this.bars).exit().remove()     
+               
+        //this.svg.selectAll("rect")
+        //.data(this.bars)
+        //.enter()
+        //.append("rect")
+        //.transition().duration(750)
+        //.attr("x", (bar: GanttBar) => this.scale(bar.startTime))
+        //.attr("y", (bar: GanttBar) => (bar.row * this.rowHeight) + this.timebarHeight + ((this.rowHeight - bar.height) / 2) )
+        //.attr("width", (bar: GanttBar) => bar.width(this.scale))        
+        //.attr("height", (bar: GanttBar) => bar.height)
+        //.attr("fill", (bar: GanttBar) => bar.barColor )
+        //        
+        //this.svg.selectAll("rect")
+        //.data(this.bars).exit().remove()                        
         
         this.svg.on("click", (e: { target: any; }) => { console.log("clic! " + d3.select(e.target).datum()) })
         
