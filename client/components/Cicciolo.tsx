@@ -60,7 +60,6 @@ export const Cicciolo: React.FC = () => {
         updateChart();
     })
 
-    return <div style={{ height: 400, overflow: "scroll" }}>
-        <div id="cicciolo" ref={d3Container} />
-    </div>
+    return  <div id="cicciolo" ref={d3Container} />
+    
 }

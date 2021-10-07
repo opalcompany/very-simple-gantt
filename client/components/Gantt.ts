@@ -9,39 +9,73 @@
 import * as d3 from 'd3';
 import { GanttBar } from "./GanttBar"
 import { GanttRow } from './GanttRow';
+import { Margins } from './Margins';
 
 export class Gantt {
-    private svg: any;
-    private scale : any;
-    private xAxis : any;
+    // main elements
     private d3Container : any;  
-    private timebarHeight : number = 60;
-    private headersWidth : number = 100;
+    private parent : any;
+    private body : any;
+    private headerSvg: any;
+    private pannableSvg: any;
     // svg elements
     private svgElementHorizontalLines : any;
     private svgElementBars : any;
     private svgElementsHeader : any;
+    // scales
+    private scale : any;
+    private xAxis : any;
+    // sizes
+    private timebarHeight : number = 60;
+    private headersWidth : number = 100;    
     
-    public width : number = 2000;
-
+    // data
     public bars: GanttBar[];
-    public rows: GanttRow[];
-    //public dataProvider : GanttDataProvider;
-
+    public rows: GanttRow[];    
+    // time range
     public startDate : Date;
     public endDate : Date;
+    // appearance
     public rowHeight : number = 100;
+    public width : number = 2000;
+    public margins : Margins;
     public horizontalLinesColor : string = "#cbcdd6";
 
-    public height() : number {
+    private height() : number {
         return (this.rowHeight * this.rows.length) + this.timebarHeight;
     }    
         
-    public init() {        
-        this.svg = d3.select(this.d3Container.current)
-        .append("svg")
+    public init() {      
+        this.parent = d3.select(this.d3Container.current)          
+        .append("div")
+
+        this.headerSvg = this.parent.append("svg")
         .attr("width", this.width)
-        .attr("height", this.height());        
+        .attr("height", this.height())
+        .style("position", "absolute")
+        .style("pointer-events", "none")
+        .style("z-index", 1)
+        //.call(svg => svg.append("g").call(yAxis));
+
+        this.body = this.parent.append("div")
+        .style("overflow-x", "scroll")
+        .style("-webkit-overflow-scrolling", "touch");        
+
+        this.pannableSvg = this.body.append("svg")
+        .attr("width", this.width + this.margins.left + this.margins.right)
+        .attr("height", this.height())
+        .style("display", "block");
+        
+        //.call(svg => svg.append("g").call(xAxis))
+        //.append("path")
+        //.datum(data)
+        //.attr("fill", "steelblue")
+        //.attr("d", area);        
+
+        //this.svg = d3.select(this.d3Container.current)
+        //.append("svg")
+        //.attr("width", this.width)
+        //.attr("height", this.height());        
 
         this.scale =  d3.scaleTime()
         .range([0, this.width - this.headersWidth])
@@ -51,12 +85,12 @@ export class Gantt {
         .ticks(d3.timeDay);
         //.tickFormat(d=>d3.timeFormat("%B %Y")(d));                     
 
-        this.svg
+        this.pannableSvg
         .append("g")
         .attr("transform", "translate(" + this.headersWidth + "," + this.timebarHeight + ")")      // This controls the vertical position of the Axis
         .call(this.xAxis);
 
-        this.svgElementHorizontalLines = this.svg.append("g")
+        this.svgElementHorizontalLines = this.pannableSvg.append("g")
           .attr("stroke", this.horizontalLinesColor);
 
         var i : number;        
@@ -69,7 +103,7 @@ export class Gantt {
           .attr("y2", this.timebarHeight + (i * this.rowHeight))          
         }        
 
-        this.svgElementsHeader = this.svg.append("g")
+        this.svgElementsHeader = this.headerSvg.append("g")
         .selectAll("g")
         .data(this.rows)
         .enter()
@@ -89,12 +123,18 @@ export class Gantt {
         .style("font-family", "Serif")
         .style("font-size", "10px")
         .style("text-anchor", "middle")
-        .text(function (row: GanttRow) { return row.caption; })        
+        .text(function (row: GanttRow) { return row.caption; })    
+        
+        
+        //yield parent.node();
+ 
+        // Initialize the scroll offset after yielding the chart to the DOM.
+        this.body.node().scrollBy(this.width + this.margins.left + this.margins.right, 0);
 
     }
 
     public loadBars(){
-        this.svgElementBars = this.svg.append("g")
+        this.svgElementBars = this.pannableSvg.append("g")
         .selectAll("g")
         .data(this.bars)
         .enter()
@@ -170,16 +210,17 @@ export class Gantt {
         //this.svg.selectAll("rect")
         //.data(this.bars).exit().remove()                        
         
-        this.svg.on("click", (e: { target: any; }) => { console.log("clic! " + d3.select(e.target).datum()) })
+        this.pannableSvg.on("click", (e: { target: any; }) => { console.log("clic! " + d3.select(e.target).datum()) })
         
     }
 
     constructor(container : any) {
         this.bars = new Array();
-        this.rows = new Array();
+        this.rows = new Array();        
         this.startDate = new Date();
         this.endDate = new Date();
         this.d3Container = container;                
+        this.margins = new Margins();
     }
 
     
