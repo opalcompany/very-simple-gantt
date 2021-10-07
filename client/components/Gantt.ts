@@ -1,6 +1,10 @@
 // https://betterprogramming.pub/add-an-html-canvas-into-your-react-app-176dab099a79
 // https://medium.com/@PepsRyuu/why-i-no-longer-use-d3-js-b8288f306c9a
 // http://tutorials.jenkov.com/svg/rect-element.html
+// http://bl.ocks.org/kevinnoll/77430421843b940869ed
+// https://observablehq.com/@d3/pannable-chart
+// http://bl.ocks.org/nicolashery/9627333
+
 
 import * as d3 from 'd3';
 import { GanttBar } from "./GanttBar"
