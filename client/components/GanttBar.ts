@@ -5,6 +5,7 @@ export class GanttBar {
     public startTime : Date;
     public endTime : Date;
     public barColor : string;
+    public opacity : number;
     public caption : string;
 
     constructor() {
@@ -13,6 +14,7 @@ export class GanttBar {
         this.endTime = new Date(0) ;
         this.barColor = '#ffeeaa'; 
         this.caption = '';
+        this.opacity = 0.5;
     }
 
     width (scale : any) : number {

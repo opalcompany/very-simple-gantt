@@ -4,7 +4,12 @@
 // http://bl.ocks.org/kevinnoll/77430421843b940869ed
 // https://observablehq.com/@d3/pannable-chart
 // http://bl.ocks.org/nicolashery/9627333
-
+// drag
+// http://bl.ocks.org/mccannf/1629464
+// https://stackoverflow.com/questions/52030269/drag-rect-not-working-as-expected
+// https://stackoverflow.com/questions/31206525/how-to-resize-rectangle-in-d3-js
+// https://octoperf.com/blog/2018/04/18/d3-js-drag-and-drop-tutorial/#a-simpler-use-case
+// https://codepen.io/sfearl1/pen/gRayJE
 
 import * as d3 from 'd3';
 import { GanttBar } from "./GanttBar"
@@ -28,6 +33,7 @@ export class Gantt {
     // sizes
     private timebarHeight : number = 60;
     private headersWidth : number = 100;    
+    // drag'n'drop    
     
     // data
     public bars: GanttBar[];
@@ -43,8 +49,22 @@ export class Gantt {
 
     private height() : number {
         return (this.rowHeight * this.rows.length) + this.timebarHeight;
-    }    
-        
+    }
+
+    private onStartDrag(): any {
+        console.log("start drag");
+    }
+
+    private onDrag(): any  {
+        console.log("on drag");
+
+    }
+    
+    private onEndDrag(): any {
+        console.log("on end drag");
+
+    }
+    
     public init() {      
         this.parent = d3.select(this.d3Container.current)          
         .append("div")
@@ -93,7 +113,7 @@ export class Gantt {
         this.svgElementHorizontalLines = this.pannableSvg.append("g")
           .attr("stroke", this.horizontalLinesColor);
 
-        var i : number;        
+        let i : number;        
         for (i = 0; i < this.rows.length; i++)
         {
           this.svgElementHorizontalLines.append("line")
@@ -143,17 +163,42 @@ export class Gantt {
                 
 
         this.svgElementBars.append("rect")
-        .attr("x", (bar: GanttBar) => this.scale(bar.startTime) + this.headersWidth)
-        .attr("y", (bar: GanttBar) => (bar.row * this.rowHeight) + this.timebarHeight + ((this.rowHeight - bar.height) / 2) )
+        .attr("class", "barRect")
+        .attr("x", (bar: GanttBar) => this.scale(bar.startTime) + this.headersWidth + this.margins.left)
+        .attr("y", (bar: GanttBar) => (bar.row * this.rowHeight) + this.timebarHeight + ((this.rowHeight - bar.height) / 2) + this.margins.top)
         .attr("rx", (bar: GanttBar) => bar.height * 0.15)
         .attr("ry", (bar: GanttBar) => bar.height * 0.15)
         .attr("width", (bar: GanttBar) => bar.width(this.scale))        
         .attr("height", (bar: GanttBar) => bar.height)
-        .attr("fill", (bar: GanttBar) => bar.barColor);
+        .style("opacity", (bar: GanttBar) => bar.opacity)
+        .attr("fill", (bar: GanttBar) => bar.barColor)
+        //.on("mouseover", (e : MouseEvent) => {this.mouseoverEvent = e})
+        //.on("mouseout", (bar: GanttBar) => {this.mouseoverBar = undefined})       
+        .on("click", (e: { target: any; }) => { console.log("clic! " + d3.select(e.target).datum()) })
+        .on("mousedown", (e: { target: any; }) => { console.log("mousedown! " + d3.select(e.target).datum()) });
+        //.call(d3.drag()
+        //  .on("start", this.onStartDrag())
+        //  .on("drag", this.onDrag())
+        //  .on("end",  this.onEndDrag())
+        //);
+
+        d3.drag()
+        .on("drag", function(e, i) {
+            console.log("drag")
+            d3.select(this).attr("transform", "translate(" + e.x + ","
+            + e.y + ")");
+        })
+    
+
+              
 
         this.svgElementBars.append("text")
-        .attr("x", (bar: GanttBar) => this.scale(bar.startTime) + this.headersWidth)
-        .attr("y", (bar: GanttBar) => (bar.row * this.rowHeight) + this.timebarHeight + (bar.height / 2) + ((this.rowHeight - bar.height) / 2)) 
+        //.attr("x", (bar: GanttBar) => this.scale(bar.startTime) + this.headersWidth)
+        //.attr("y", (bar: GanttBar) => (bar.row * this.rowHeight) + this.timebarHeight + (bar.height / 2) + ((this.rowHeight - bar.height) / 2)) 
+        .attr("x", (bar: GanttBar) => {const s = this.scale(bar.startTime); return s + this.headersWidth + (bar.width(this.scale) /2) + this.margins.left;})
+        .attr("y", (bar: GanttBar) => (bar.row * this.rowHeight) + this.timebarHeight + (this.rowHeight / 2) + this.margins.top)        
+        .attr("text-anchor", "middle")
+        .attr("dominant-baseline", "middle")        
         .style("font-family", "Mono")
         .style("font-size", "30px")
         .text(function (bar: GanttBar) { return bar.caption; })        
@@ -208,9 +253,21 @@ export class Gantt {
         //.attr("fill", (bar: GanttBar) => bar.barColor )
         //        
         //this.svg.selectAll("rect")
-        //.data(this.bars).exit().remove()                        
+        //.data(this.bars).exit().remove()          
         
         this.pannableSvg.on("click", (e: { target: any; }) => { console.log("clic! " + d3.select(e.target).datum()) })
+
+        //var drag = this.pannableSvg.on("mousedown", (e: {target: any}) => {
+        //    console.log("drag");
+        //    d3.select(e.target)
+        //        .attr('x', e.target.x)
+        //        .attr('y', e.target.y);
+        //}); 
+        //
+        //svg.addEventListener('mousedown', startDrag);
+        //svg.addEventListener('mousemove', drag);
+        //svg.addEventListener('mouseup', endDrag);
+        //svg.addEventListener('mouseleave', endDrag);        
         
     }
 
