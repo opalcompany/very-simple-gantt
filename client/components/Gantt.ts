@@ -10,8 +10,10 @@
 // https://stackoverflow.com/questions/31206525/how-to-resize-rectangle-in-d3-js
 // https://octoperf.com/blog/2018/04/18/d3-js-drag-and-drop-tutorial/#a-simpler-use-case
 // https://codepen.io/sfearl1/pen/gRayJE
+// https://bl.ocks.org/mbostock/2990a882e007f8384b04827617752738
 
 import * as d3 from 'd3';
+import * as d3drag from 'd3-drag';
 import { GanttBar } from "./GanttBar"
 import { GanttRow } from './GanttRow';
 import { Margins } from './Margins';
@@ -34,7 +36,7 @@ export class Gantt {
     private timebarHeight : number = 60;
     private headersWidth : number = 100;    
     // drag'n'drop    
-    
+    private barDragged : any;
     // data
     public bars: GanttBar[];
     public rows: GanttRow[];    
@@ -51,18 +53,29 @@ export class Gantt {
         return (this.rowHeight * this.rows.length) + this.timebarHeight;
     }
 
-    private onStartDrag(): any {
+    private onStartDrag(event: any, d: any): any {
         console.log("start drag");
+        this.svgElementBars.filter((p: unknown) => p === d).raise().attr("stroke", "black");
+        this.barDragged = d3.select('bar').classed("dragging", true);
     }
 
-    private onDrag(): any  {
-        console.log("on drag");
+    private onDrag2(event: any, d: unknown) {
+      d3.selectAll('bar')
+      .attr("x", event.x);
+    }
 
+    private onDrag(this: Element, event: any, d:unknown)  {
+        console.log("drag");
+        d3.select(this)
+        .attr("x", event.x);
+        //let currentBar = this.svgElementBars.filter((p: unknown) => p === d);
+        //this.barDragged.attr("x", event.x);
+        //this.barDragged.datum.x = event.x;
     }
     
-    private onEndDrag(): any {
+    private onEndDrag(event: any, d: any): any {
         console.log("on end drag");
-
+        this.svgElementBars.filter((p: any) => p === d).attr("stroke", null);
     }
     
     public init() {      
@@ -161,7 +174,7 @@ export class Gantt {
         .append("g")
         //.attr("transform", "translate(" + this.headersWidth + ",0)");
                 
-
+        
         this.svgElementBars.append("rect")
         .attr("class", "barRect")
         .attr("x", (bar: GanttBar) => this.scale(bar.startTime) + this.headersWidth + this.margins.left)
@@ -172,11 +185,10 @@ export class Gantt {
         .attr("height", (bar: GanttBar) => bar.height)
         .style("opacity", (bar: GanttBar) => bar.opacity)
         .attr("fill", (bar: GanttBar) => bar.barColor)
-        .call(d3.drag()
-        .on("start", (event, d) => this.svgElementBars.filter((p: unknown) => p === d).raise().attr("stroke", "black"))
-        .on("drag", (event, d) => console.log("Drag! " + d))
-        //.on("drag", (event, d) => this.svgElementBars.filter((p: unknown) => p === d).raise().attr("x", event.x))
-        .on("end", (event, d) => this.svgElementBars.filter((p: any) => p === d).attr("stroke", null))
+        .call(d3drag.drag()
+        .on("start", (event, d) => this.onStartDrag(event, d))
+        .on("drag", (event, d) => this.onDrag2(event, d))
+        .on("end", (event, d) => this.onEndDrag(event, d))
         );
         //.on("start.update drag.update end.update", update));
 
