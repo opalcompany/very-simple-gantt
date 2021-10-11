@@ -172,23 +172,44 @@ export class Gantt {
         .attr("height", (bar: GanttBar) => bar.height)
         .style("opacity", (bar: GanttBar) => bar.opacity)
         .attr("fill", (bar: GanttBar) => bar.barColor)
+        .call(d3.drag()
+        .on("start", (event, d) => this.svgElementBars.filter((p: unknown) => p === d).raise().attr("stroke", "black"))
+        .on("drag", (event, d) => console.log("Drag! " + d))
+        //.on("drag", (event, d) => this.svgElementBars.filter((p: unknown) => p === d).raise().attr("x", event.x))
+        .on("end", (event, d) => this.svgElementBars.filter((p: any) => p === d).attr("stroke", null))
+        );
+        //.on("start.update drag.update end.update", update));
+
         //.on("mouseover", (e : MouseEvent) => {this.mouseoverEvent = e})
         //.on("mouseout", (bar: GanttBar) => {this.mouseoverBar = undefined})       
-        .on("click", (e: { target: any; }) => { console.log("clic! " + d3.select(e.target).datum()) })
-        .on("mousedown", (e: { target: any; }) => { console.log("mousedown! " + d3.select(e.target).datum()) });
+        
+        //.on("click", (e: { target: any; }) => { console.log("clic! " + d3.select(e.target).datum()) })
+        //.on("mousedown", (e: { target: any; }) => { console.log("mousedown! " + d3.select(e.target).datum()) })
+        //.on("dragstart", (e: { target: any; }) => { console.log("dragstart! " + d3.select(e.target).datum()) })
+        //.on("mouseup", (e: { target: any; }) => { console.log("mouseup! " + d3.select(e.target).datum()) })
+        //.on("mousemove", (e: { target: any; }) => { console.log("mousemove! " + d3.select(e.target).datum()) });        
+        
         //.call(d3.drag()
         //  .on("start", this.onStartDrag())
         //  .on("drag", this.onDrag())
         //  .on("end",  this.onEndDrag())
         //);
 
+        //var dragHandler = d3.drag()
+        //.on("drag", function (e: any) {
+        //    d3.select(this)
+        //        .attr("x", e.x)
+        //        .attr("y", e.y);
+        //});      
+
+        /*
         d3.drag()
         .on("drag", function(e, i) {
             console.log("drag")
             d3.select(this).attr("transform", "translate(" + e.x + ","
             + e.y + ")");
         })
-    
+    */
 
               
 
