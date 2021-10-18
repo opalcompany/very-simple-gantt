@@ -7,6 +7,7 @@ export class GanttBar {
     public barColor : string;
     public opacity : number;
     public caption : string;
+    public data? : any;
 
     constructor() {
         this.height = 0;

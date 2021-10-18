@@ -15,6 +15,7 @@
 import * as d3 from 'd3';
 import * as d3drag from 'd3-drag';
 import { GanttBar } from "./GanttBar"
+import { onGanttDragBarEvent, onGanttEndDragBarEvent, onGanttStartDragBarEvent } from './GanttEvents';
 import { GanttRow } from './GanttRow';
 import { Margins } from './Margins';
 
@@ -47,10 +48,14 @@ export class Gantt {
     public margins: Margins;
     public horizontalLinesColor: string = "#cbcdd6";
     // drag'n'drop
-    //private currentDragStartX?: number;
+    private dragging: boolean;
     private currentDragStartDate?: Date;
     private currentDragBarStartDate?: Date;
     private currentDragBarY?: number;
+
+    public onStartDrag?: onGanttStartDragBarEvent;
+    public onDrag?: onGanttDragBarEvent;
+    public onEndDrag?: onGanttEndDragBarEvent;
 
     private height(): number {
         return (this.rowHeight * this.rows.length) + this.timebarHeight;
@@ -80,28 +85,44 @@ export class Gantt {
         return `translate(${this.getSvgXCoord(x+this.scale(bar.startTime))}, ${this.currentDragBarY})`
     } 
 
-    private onStartDrag(el: Element, event: any, bar: GanttBar): any {
+    private gOnStartDrag(el: Element, event: any, bar: GanttBar): any {
         //this.currentDragStartX = event.x;
         //console.log("current drag start x:" + this.currentDragStartX);
         this.currentDragStartDate = this.scale.invert(this.getGanttXCoord(event.x));
         this.currentDragBarStartDate = bar.startTime;
         this.currentDragBarY = this.calculateBarY(bar);
         console.log("current drag start y:" + this.currentDragBarY);
+        if (this.onStartDrag! != undefined) {
+            if (this.onStartDrag!(bar)) {
+              d3.select(el).raise().attr("stroke", "black");
+              this.dragging = true;
+            } else {
+                this.dragging = false;
+            }
+        } else {
+            d3.select(el).raise().attr("stroke", "black");
+            this.dragging = true;
+        }
 
-        d3.select(el).raise().attr("stroke", "black");
+
     }
 
-    private onDrag(el: Element, event: any, bar: GanttBar) {                       
-        const actualDate : Date = this.scale.invert(this.getGanttXCoord(event.x));
-        const delta = actualDate.valueOf() - this.currentDragStartDate!.valueOf();
-        bar.startTime = new Date(this.currentDragBarStartDate!.valueOf() + delta);
-        d3.select(el)
-            .attr("transform", this.gXTransform(bar, 0));
+    private gOnDrag(el: Element, event: any, bar: GanttBar) {                       
+        if (this.dragging) {
+            const actualDate : Date = this.scale.invert(this.getGanttXCoord(event.x));
+            const delta = actualDate.valueOf() - this.currentDragStartDate!.valueOf();
+            bar.startTime = new Date(this.currentDragBarStartDate!.valueOf() + delta);
+            d3.select(el)
+                .attr("transform", this.gXTransform(bar, 0));    
+        }
     }
 
-    private onEndDrag(el: Element, event: any, bar: GanttBar): any {
-        console.log("on end drag");
-        d3.select(el).attr("stroke", null);
+    private gOnEndDrag(el: Element, event: any, bar: GanttBar): any {
+        if (this.dragging) {
+            console.log("on end drag");
+            d3.select(el).attr("stroke", null);    
+        }
+        this.dragging = false;        
     }
 
     public init() {
@@ -192,9 +213,9 @@ export class Gantt {
                 // "referenceToGantt" refers to the gantt instance ("this" now), "this" is a group element (rect + text) in the function context, 
                 // event is the d3 event
                 // d is the datum aka GanttBar
-                .on("start", function (event, d) { referenceToGantt.onStartDrag(this, event, d) }) 
-                .on("drag", function (event, d) { referenceToGantt.onDrag(this, event, d) })
-                .on("end", function (event, d) { referenceToGantt.onEndDrag(this, event, d) })
+                .on("start", function (event, d) { referenceToGantt.gOnStartDrag(this, event, d) }) 
+                .on("drag", function (event, d) { referenceToGantt.gOnDrag(this, event, d) })
+                .on("end", function (event, d) { referenceToGantt.gOnEndDrag(this, event, d) })
             )
             .attr("transform", (bar: GanttBar) => this.gTransform(bar, 0));
 
@@ -233,6 +254,7 @@ export class Gantt {
         this.endDate = new Date();
         this.d3Container = container;
         this.margins = new Margins();
+        this.dragging = false;
     }
 
 

@@ -5,11 +5,20 @@ import { Gantt } from './Gantt'
 import { GanttRow } from './GanttRow';
 
 function randomDate(start: Date, end: Date) {
-    var d = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
-    // console.log("start:" + start + " end:" + end + " date:" + d);
+    const d = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
     return d;
-
   }
+function randomBarDate(start: Date) {    
+    const d = new Date();    
+    d.setDate(start.getDate() + 1 + Math.random() * 7)
+    console.log("start:" + start.toDateString() + ' end:' + d.toDateString());    
+    return d;    
+}
+
+class GanttData  {
+    public experimentId? : number;
+    public actionId? : number;
+}
 
 export const Cicciolo: React.FC = () => {    
 
@@ -33,6 +42,29 @@ export const Cicciolo: React.FC = () => {
             gantt.rows.push(r);
         }
 
+        for (let e = 1; e <= 4; e++)
+        {
+            let dateLimit = gantt.startDate;
+
+            for (let r = 0; r < 6; r++) {
+                let b = new GanttBar;
+                b.row = r;
+                b.startTime = randomBarDate(dateLimit);
+                b.endTime = randomBarDate(b.startTime);
+                dateLimit = randomBarDate(b.endTime);
+                b.height = 70;
+                b.barColor = d3.interpolateRainbow(Math.random());
+                b.caption = "EX " + e + " ACT" + r;
+                const data = new GanttData();
+                b.data = data;
+                data.experimentId = e;
+                data.actionId = r + 1;
+                gantt.bars.push(b);
+            }
+        
+        }
+
+        /*
         for (let r = 0; r < 6; r ++)
         {
             let dateLimit = gantt.startDate;
@@ -50,6 +82,14 @@ export const Cicciolo: React.FC = () => {
             }
     
         }
+        */
+
+        const onStartDrag = (bar: GanttBar): boolean => {
+            const d = bar.data!;
+            return (d.actionId == 1);            
+        }
+
+        gantt.onStartDrag = onStartDrag;
 
         gantt.init();       
 
