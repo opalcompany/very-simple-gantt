@@ -91,8 +91,11 @@ export class Gantt {
         //this.currentDragStartX = event.x;
         //console.log("current drag start x:" + this.currentDragStartX);
         this.currentDragStartDate = this.scale.invert(this.getGanttXCoord(event.x));
+        console.log("current drag bar:" + bar.caption);
         this.currentDragBarStartDate = bar.startTime;
+        console.log("current drag start time:" + bar.startTime.toISOString());
         this.currentDragBarEndDate = bar.endTime;
+        console.log("current drag end time:" + bar.endTime.toISOString());
         this.currentDragBarY = this.calculateBarY(bar);
         console.log("current drag start y:" + this.currentDragBarY);
         if (this.onStartDrag! != undefined) {
@@ -115,7 +118,9 @@ export class Gantt {
             const actualDate : Date = this.scale.invert(this.getGanttXCoord(event.x));
             const delta = actualDate.valueOf() - this.currentDragStartDate!.valueOf();
             let newStartTime = new Date(this.currentDragBarStartDate!.valueOf() + delta);
+            console.log("new start time:" + newStartTime.toISOString());
             let newEndTime = new Date(this.currentDragBarEndDate!.valueOf() + delta);
+            console.log("new end time:" + newEndTime.toISOString());
             // exceed left time limit
             if (newStartTime < this.startDate) {                
                 const newdelta_s = this.startDate.valueOf() - newStartTime.valueOf();
