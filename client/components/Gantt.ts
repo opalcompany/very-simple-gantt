@@ -14,6 +14,7 @@
 
 import * as d3 from 'd3';
 import * as d3drag from 'd3-drag';
+import { ThemeConsumer } from 'react-bootstrap/esm/ThemeProvider';
 import { GanttBar } from "./GanttBar"
 import { onGanttDragBarEvent, onGanttEndDragBarEvent, onGanttStartDragBarEvent } from './GanttEvents';
 import { GanttRow } from './GanttRow';
@@ -51,6 +52,7 @@ export class Gantt {
     private dragging: boolean;
     private currentDragStartDate?: Date;
     private currentDragBarStartDate?: Date;
+    private currentDragBarEndDate?: Date;
     private currentDragBarY?: number;
 
     public onStartDrag?: onGanttStartDragBarEvent;
@@ -90,6 +92,7 @@ export class Gantt {
         //console.log("current drag start x:" + this.currentDragStartX);
         this.currentDragStartDate = this.scale.invert(this.getGanttXCoord(event.x));
         this.currentDragBarStartDate = bar.startTime;
+        this.currentDragBarEndDate = bar.endTime;
         this.currentDragBarY = this.calculateBarY(bar);
         console.log("current drag start y:" + this.currentDragBarY);
         if (this.onStartDrag! != undefined) {
@@ -111,15 +114,49 @@ export class Gantt {
         if (this.dragging) {
             const actualDate : Date = this.scale.invert(this.getGanttXCoord(event.x));
             const delta = actualDate.valueOf() - this.currentDragStartDate!.valueOf();
-            bar.startTime = new Date(this.currentDragBarStartDate!.valueOf() + delta);
-            d3.select(el)
-                .attr("transform", this.gXTransform(bar, 0));    
+            let newStartTime = new Date(this.currentDragBarStartDate!.valueOf() + delta);
+            let newEndTime = new Date(this.currentDragBarEndDate!.valueOf() + delta);
+            // exceed left time limit
+            if (newStartTime < this.startDate) {                
+                const newdelta_s = this.startDate.valueOf() - newStartTime.valueOf();
+                newStartTime = this.startDate;
+                newEndTime = new Date(newEndTime.valueOf() + newdelta_s);
+            } else if (newEndTime > this.endDate) { // exceed right time limit
+                console.log('right limit');
+                const newdelta_e = newEndTime.valueOf() - this.endDate.valueOf();
+                console.log('start time:' + newStartTime.toISOString() + ' end time:' + newEndTime.toISOString());
+                newStartTime = new Date(newStartTime.valueOf() - newdelta_e);
+                newEndTime = this.endDate;
+                console.log('start time:' + newStartTime.toISOString() + ' end time:' + newEndTime.toISOString());
+            }
+                
+
+            if (this.onDrag! != undefined){
+                if (this.onDrag!(bar, newStartTime)) {
+                    bar.startTime = newStartTime;
+                    bar.endTime = newEndTime;
+                    d3.select(el)
+                        .attr("transform", this.gXTransform(bar, 0));    
+        
+                }
+            } else {
+                bar.startTime = newStartTime;
+                d3.select(el)
+                    .attr("transform", this.gXTransform(bar, 0));    
+    
+            }            
         }
     }
 
     private gOnEndDrag(el: Element, event: any, bar: GanttBar): any {
         if (this.dragging) {
             console.log("on end drag");
+            if (this.onEndDrag! != undefined) {
+                if (this.onEndDrag!(bar)) {
+
+                }
+
+            }
             d3.select(el).attr("stroke", null);    
         }
         this.dragging = false;        
@@ -217,6 +254,7 @@ export class Gantt {
                 .on("drag", function (event, d) { referenceToGantt.gOnDrag(this, event, d) })
                 .on("end", function (event, d) { referenceToGantt.gOnEndDrag(this, event, d) })
             )
+            .attr("id", (bar: GanttBar) => bar.id)            
             .attr("transform", (bar: GanttBar) => this.gTransform(bar, 0));
 
 

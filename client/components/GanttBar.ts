@@ -1,5 +1,6 @@
 
 export class GanttBar {
+    public id : string;
     public row : number = 0;
     public height : number;
     public startTime : Date;
@@ -10,6 +11,7 @@ export class GanttBar {
     public data? : any;
 
     constructor() {
+        this.id = '';        
         this.height = 0;
         this.startTime = new Date(0) ;
         this.endTime = new Date(0) ;

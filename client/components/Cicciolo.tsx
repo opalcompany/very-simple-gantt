@@ -54,6 +54,7 @@ export const Cicciolo: React.FC = () => {
                 dateLimit = randomBarDate(b.endTime);
                 b.height = 70;
                 b.barColor = d3.interpolateRainbow(Math.random());
+                b.id = e + "-" + r;
                 b.caption = "EX " + e + " ACT" + r;
                 const data = new GanttData();
                 b.data = data;
