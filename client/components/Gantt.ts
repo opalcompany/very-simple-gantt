@@ -14,11 +14,11 @@
 
 import * as d3 from 'd3';
 import * as d3drag from 'd3-drag';
-import { ThemeConsumer } from 'react-bootstrap/esm/ThemeProvider';
+//import { ThemeConsumer } from 'react-bootstrap/esm/ThemeProvider';
 import { GanttBar } from "./GanttBar"
 import { onGanttDragBarEvent, onGanttEndDragBarEvent, onGanttStartDragBarEvent } from './GanttEvents';
 import { GanttRow } from './GanttRow';
-import { Margins } from './Margins';
+//import { Margins } from './Margins';
 
 export class Gantt {
     // main elements
@@ -27,7 +27,7 @@ export class Gantt {
     private body: any;
     private headerSvg: any;
     private pannableSvg: any;
-    // svg elements
+        // svg elements
     private svgElementHorizontalLines: any;
     private svgElementBars: any;
     private svgElementsHeader: any;
@@ -46,14 +46,20 @@ export class Gantt {
     // appearance
     public rowHeight: number = 100;
     public width: number = 2000;
-    public margins: Margins;
     public horizontalLinesColor: string = "#cbcdd6";
+    public resizeAnchorWidth: number = 3;
     // drag'n'drop
     private dragging: boolean;
-    private currentDragStartDate?: Date;
-    private currentDragBarStartDate?: Date;
-    private currentDragBarEndDate?: Date;
-    private currentDragBarY?: number;
+    private startXOfDragEvent? : number;
+    private draggedBarStartX? : number;
+    private draggedBarEndX? : number;
+    private draggedBarY?: number;
+    // resizing
+    private resizing: boolean;
+    private startXOfResizeEvent?: number;
+    private resizingBarStartX?: number;
+    private resizingBarEndX?: number;
+    private resizingBarY?: number;
 
     public onStartDrag?: onGanttStartDragBarEvent;
     public onDrag?: onGanttDragBarEvent;
@@ -63,41 +69,77 @@ export class Gantt {
         return (this.rowHeight * this.rows.length) + this.timebarHeight;
     }
 
-    private getGanttXCoord(svgXCoord: number) : number {
-        return svgXCoord - this.headersWidth - this.margins.left;
+    private convertContainerXToGanttX(containerXCoord: number) : number {
+        return containerXCoord - this.headersWidth;
     }
 
-    private getSvgXCoord(ganttXCoord : number) : number {
-        return ganttXCoord + this.headersWidth + this.margins.left;
+    private convertGanttXToContainerX(ganttXCoord : number) : number {
+        return ganttXCoord + this.headersWidth;
     }
 
     private calculateBarX(bar: GanttBar, x:number) : number {
-        return this.getSvgXCoord(x+this.scale(bar.startTime));
+        return this.convertGanttXToContainerX(x+this.scale(bar.startTime));
+    }
+
+    private calculateBarEndX(bar: GanttBar, x:number) : number {
+        return this.convertGanttXToContainerX(x+this.scale(bar.endTime));
     }
 
     private calculateBarY(bar: GanttBar) : number {
-        return (bar.row * this.rowHeight) + this.timebarHeight + ((this.rowHeight - bar.height) / 2) + this.margins.top;
+        return (bar.row * this.rowHeight) + this.timebarHeight + ((this.rowHeight - bar.height) / 2);
     }
 
     private gTransform = (bar: GanttBar, x: number) => {
         return `translate(${this.calculateBarX(bar, x)}, ${this.calculateBarY(bar)})`
     }
 
-    private gXTransform =(bar: GanttBar, x: number) => {
-        return `translate(${this.getSvgXCoord(x+this.scale(bar.startTime))}, ${this.currentDragBarY})`
+    private gXTransform =(bar: GanttBar, x: number, y: number) => {
+        return `translate(${this.convertGanttXToContainerX(x+this.scale(bar.startTime))}, ${y})`
     } 
 
+    private gResizeTransform =(bar: GanttBar, scaleFactor: number, x : number, y: number) => {  
+        //return `scale(${scaleFactor}, 0)  translate(${this.convertGanttXToContainerX(x)}, ${y})`      
+        return `scale(${scaleFactor}, 0)`
+    } 
+
+
+    private gOnStartResize(el: Element, event: any, bar: GanttBar) : any {
+        console.log("start resizing");
+        this.startXOfResizeEvent = event.x;        
+        this.resizingBarStartX = this.scale(bar.startTime);        
+        this.resizingBarEndX = this.scale(bar.endTime);        
+        this.resizingBarY = this.calculateBarY(bar);
+
+        d3.select(el).raise().attr("stroke", "black");
+        this.resizing = true;        
+    }
+
+    private gOnResize(el: Element, event: any, bar: GanttBar) : any {
+        if (this.resizing) {    
+            console.log(el.className);
+            const delta = event.x - this.startXOfResizeEvent!;
+            const w = bar.width(this.scale);
+            const scaleFactor = (w + delta) / w;
+            let newEndTime = new Date(this.scale.invert(this.resizingBarEndX! + delta));            
+            console.log("resizing - scale factor:" + scaleFactor);
+            bar.endTime = newEndTime;
+            d3.select(el)
+                .attr("transform", this.gResizeTransform(bar, scaleFactor, 0, this.resizingBarY!));
+        }
+
+    }
+
+    private gOnEndResize(el : Element, event: any, bar: GanttBar) : any {
+        d3.select(el).attr("stroke", null);   
+        this.resizing = false;
+    }
+
     private gOnStartDrag(el: Element, event: any, bar: GanttBar): any {
-        //this.currentDragStartX = event.x;
-        //console.log("current drag start x:" + this.currentDragStartX);
-        this.currentDragStartDate = this.scale.invert(this.getGanttXCoord(event.x));
-        console.log("current drag bar:" + bar.caption);
-        this.currentDragBarStartDate = bar.startTime;
-        console.log("current drag start time:" + bar.startTime.toISOString());
-        this.currentDragBarEndDate = bar.endTime;
-        console.log("current drag end time:" + bar.endTime.toISOString());
-        this.currentDragBarY = this.calculateBarY(bar);
-        console.log("current drag start y:" + this.currentDragBarY);
+        this.startXOfDragEvent = event.x;        
+        this.draggedBarStartX = this.scale(bar.startTime);        
+        this.draggedBarEndX = this.scale(bar.endTime);
+        //console.log("current bar starts at " + this.draggedBarStartX + ' and ends at ' + this.draggedBarEndX);
+        this.draggedBarY = this.calculateBarY(bar);
         if (this.onStartDrag! != undefined) {
             if (this.onStartDrag!(bar)) {
               d3.select(el).raise().attr("stroke", "black");
@@ -115,39 +157,38 @@ export class Gantt {
 
     private gOnDrag(el: Element, event: any, bar: GanttBar) {                       
         if (this.dragging) {
-            const actualDate : Date = this.scale.invert(this.getGanttXCoord(event.x));
-            const delta = actualDate.valueOf() - this.currentDragStartDate!.valueOf();
-            let newStartTime = new Date(this.currentDragBarStartDate!.valueOf() + delta);
-            console.log("new start time:" + newStartTime.toISOString());
-            let newEndTime = new Date(this.currentDragBarEndDate!.valueOf() + delta);
-            console.log("new end time:" + newEndTime.toISOString());
+            const delta = event.x - this.startXOfDragEvent!;
+            //console.log("delta:" + delta + "draggedBarStartX:" + this.draggedBarStartX + " draggedBarEndX:" + this.draggedBarEndX);
+            let newStartTime = new Date(this.scale.invert(this.draggedBarStartX! + delta));
+            let newEndTime = new Date(this.scale.invert(this.draggedBarEndX! + delta));
+            //console.log("new start time:" + newStartTime.toISOString() + " new end time:" + newEndTime.toISOString());
+
             // exceed left time limit
-            if (newStartTime < this.startDate) {                
+            if (newStartTime < this.startDate) { 
+                console.log("exceed left time limit");
                 const newdelta_s = this.startDate.valueOf() - newStartTime.valueOf();
                 newStartTime = this.startDate;
                 newEndTime = new Date(newEndTime.valueOf() + newdelta_s);
             } else if (newEndTime > this.endDate) { // exceed right time limit
-                console.log('right limit');
+                console.log("exceed right time limit");
                 const newdelta_e = newEndTime.valueOf() - this.endDate.valueOf();
-                console.log('start time:' + newStartTime.toISOString() + ' end time:' + newEndTime.toISOString());
                 newStartTime = new Date(newStartTime.valueOf() - newdelta_e);
                 newEndTime = this.endDate;
-                console.log('start time:' + newStartTime.toISOString() + ' end time:' + newEndTime.toISOString());
             }
                 
 
             if (this.onDrag! != undefined){
-                if (this.onDrag!(bar, newStartTime)) {
+                if (this.onDrag!(bar, newStartTime, newEndTime)) {
                     bar.startTime = newStartTime;
                     bar.endTime = newEndTime;
                     d3.select(el)
-                        .attr("transform", this.gXTransform(bar, 0));    
-        
+                        .attr("transform", this.gXTransform(bar, 0, this.draggedBarY!));
                 }
             } else {
                 bar.startTime = newStartTime;
+                bar.endTime = newEndTime;
                 d3.select(el)
-                    .attr("transform", this.gXTransform(bar, 0));    
+                    .attr("transform", this.gXTransform(bar, 0, this.draggedBarY!));
     
             }            
         }
@@ -155,10 +196,30 @@ export class Gantt {
 
     private gOnEndDrag(el: Element, event: any, bar: GanttBar): any {
         if (this.dragging) {
-            console.log("on end drag");
+            //console.log("on end drag");
             if (this.onEndDrag! != undefined) {
-                if (this.onEndDrag!(bar)) {
+                let updateBars = new Array();
+                if (this.onEndDrag!(bar, updateBars)) {                    
+                    for (let i = 0; i < updateBars.length; i++) {
+                        let found = 0;
+                        let k = 0;
+                        while ((found == 0) && (k < this.bars.length)) {
+                            if (this.bars[k].data!.id == updateBars[i].id) {
+                                updateBars[i].copyTo(this.bars[k]);
+                                found = 1;
+                            }
+                            k++;
+                        }                        
+                    }
 
+                } else {
+                    // if false, undo drag movement for current bar
+                    const newStartTime = new Date(this.scale.invert(this.draggedBarStartX!));
+                    const newEndTime = new Date(this.scale.invert(this.draggedBarEndX!));
+                    bar.startTime = newStartTime;
+                    bar.endTime = newEndTime;
+                    d3.select(el)
+                        .attr("transform", this.gXTransform(bar, 0, this.draggedBarY!));
                 }
 
             }
@@ -184,7 +245,7 @@ export class Gantt {
             .style("-webkit-overflow-scrolling", "touch");
 
         this.pannableSvg = this.body.append("svg")
-            .attr("width", this.width + this.margins.left + this.margins.right)
+            .attr("width", this.width)
             .attr("height", this.height())
             .style("display", "block");
     
@@ -240,7 +301,7 @@ export class Gantt {
         //yield parent.node();
 
         // Initialize the scroll offset after yielding the chart to the DOM.
-        this.body.node().scrollBy(this.width + this.margins.left + this.margins.right, 0);
+        this.body.node().scrollBy(this.width, 0);
 
     }
 
@@ -264,7 +325,7 @@ export class Gantt {
 
 
         this.svgElementBars.append("rect")
-            .attr("class", "barRect")
+            // .attr("class", "barRect")
             // .attr("x", (bar: GanttBar) => this.scale(bar.startTime) + this.headersWidth + this.margins.left)
             // .attr("y", (bar: GanttBar) => (bar.row * this.rowHeight) + this.timebarHeight + ((this.rowHeight - bar.height) / 2) + this.margins.top)
             .attr("rx", (bar: GanttBar) => bar.height * 0.15)
@@ -286,6 +347,23 @@ export class Gantt {
             .style("font-size", "30px")
             .attr("cursor", "pointer")
             .text(function (bar: GanttBar) { return bar.caption; })
+        
+        this.svgElementBars.append("rect")
+            .attr("x", (bar:GanttBar) => bar.width(this.scale) - this.resizeAnchorWidth)
+            .attr("y", (bar: GanttBar) => (bar.height - (bar.height / 3)) / 2)
+            .attr("width", this.resizeAnchorWidth)
+            .attr("height", (bar: GanttBar) => bar.height / 3)
+            .attr("cursor", "e-resize")
+            .style("opacity", (bar: GanttBar) => bar.opacity)
+            .call(d3drag.drag<any, GanttBar>()
+                // "referenceToGantt" refers to the gantt instance ("this" now), "this" is a group element (rect + text) in the function context, 
+                // event is the d3 event
+                // d is the datum aka GanttBar
+                .on("start", function (event, d) { referenceToGantt.gOnStartResize(this.parentNode, event, d) }) 
+                .on("drag", function (event, d) { referenceToGantt.gOnResize(this.parentNode, event, d) })
+                .on("end", function (event, d) { referenceToGantt.gOnEndResize(this.parentNode, event, d) })
+            )            
+            ;
 
         this.pannableSvg.on("click", (e: { target: any; }) => { console.log("clic! " + d3.select(e.target).datum()) });     
     }
@@ -295,9 +373,9 @@ export class Gantt {
         this.rows = new Array();
         this.startDate = new Date();
         this.endDate = new Date();
-        this.d3Container = container;
-        this.margins = new Margins();
+        this.d3Container = container;        
         this.dragging = false;
+        this.resizing = false;
     }
 
 

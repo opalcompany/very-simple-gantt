@@ -34,7 +34,7 @@ export const Cicciolo: React.FC = () => {
         const gantt = new Gantt(d3Container); 
         gantt.startDate = new Date(2021, 9, 1);
         gantt.endDate = new Date(2021, 9, 30);
-
+        
         for (let i = 0; i < 6; i++) {
             let r = new GanttRow;
             r.row = i;
@@ -65,32 +65,29 @@ export const Cicciolo: React.FC = () => {
         
         }
 
-        /*
-        for (let r = 0; r < 6; r ++)
-        {
-            let dateLimit = gantt.startDate;
-
-            for (let i = 0; i < 4; i++) {
-                let b = new GanttBar;
-                b.row = r;
-                b.startTime = randomDate(dateLimit, gantt.endDate); //randomDate(gantt.startDate, gantt.endDate);
-                b.endTime = randomDate(b.startTime, gantt.endDate);
-                dateLimit = b.endTime;
-                b.height = 70;
-                b.barColor = d3.interpolateRainbow(Math.random());
-                b.caption = "bar #" + i;
-                gantt.bars.push(b);
-            }
-    
-        }
-        */
-
         const onStartDrag = (bar: GanttBar): boolean => {
             const d = bar.data!;
-            return (d.actionId == 1);            
+            return (d.actionId == 1);
         }
 
         gantt.onStartDrag = onStartDrag;
+
+        const onEndDrag = (bar: GanttBar, bars: GanttBar[]): boolean => {            
+            //return false;            
+            const data = bar.data!;
+            const currentExperiment = data.experimentId;
+            for (let expBar of gantt.bars) {
+                if (expBar.data!.experimentId == currentExperiment) {
+                    let b = new GanttBar;
+                    expBar.copyTo(b);
+                    b.barColor = d3.interpolateGreens(Math.random());
+                    bars.push(b);
+                }
+            }
+            return true;
+        }
+
+        gantt.onEndDrag = onEndDrag;
 
         gantt.init();       
 

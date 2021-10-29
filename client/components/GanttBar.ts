@@ -20,6 +20,16 @@ export class GanttBar {
         this.opacity = 0.5;
     }
 
+    public copyTo(destination : GanttBar) {
+        destination.id = this.id;
+        destination.height = this.height;
+        destination.startTime = this.startTime;
+        destination.endTime = this.endTime;
+        destination.barColor = this.barColor;
+        destination.caption = this.caption;
+        destination.opacity = this.opacity;
+    }
+
     width (scale : any) : number {
         return scale(this.endTime) - scale(this.startTime)
 
