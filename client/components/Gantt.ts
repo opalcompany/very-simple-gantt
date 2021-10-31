@@ -98,8 +98,10 @@ export class Gantt {
     } 
 
     private gResizeTransform =(bar: GanttBar, scaleFactor: number, x : number, y: number) => {  
-        //return `scale(${scaleFactor}, 0)  translate(${this.convertGanttXToContainerX(x)}, ${y})`      
-        return `scale(${scaleFactor}, 0)`
+        return `scale(${scaleFactor}, 1)  translate(${this.scale(bar.startTime)}, ${y})`      
+        //return `scale(${scaleFactor}, 1)  translate(${this.convertGanttXToContainerX(x)}, ${y})`      
+        //return `scale(${scaleFactor}, 1)`
+        //return `scale(3, 2)`
     } 
 
 
@@ -120,10 +122,13 @@ export class Gantt {
             const delta = event.x - this.startXOfResizeEvent!;
             const w = bar.width(this.scale);
             const scaleFactor = (w + delta) / w;
+            const newWidth = w + delta;
             let newEndTime = new Date(this.scale.invert(this.resizingBarEndX! + delta));            
             console.log("resizing - scale factor:" + scaleFactor);
-            bar.endTime = newEndTime;
+            //bar.endTime = newEndTime;
+            //bar.startTime = new Date(this.resizingBarStartX!);
             d3.select(el)
+                //.attr("width", newWidth);
                 .attr("transform", this.gResizeTransform(bar, scaleFactor, 0, this.resizingBarY!));
         }
 
