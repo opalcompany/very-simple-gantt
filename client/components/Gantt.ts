@@ -22,27 +22,26 @@ import { GanttRow } from './GanttRow';
 
 export class Gantt {
     // main elements
-    private d3Container: any;
     private parent: any;
     private body: any;
     private headerSvg: any;
     private pannableSvg: any;
-        // svg elements
+    // svg elements
     private svgElementHorizontalLines: any;
     private svgElementBars: any;
     private svgElementsHeader: any;
     // scales
-    private scale: any;
-    private xAxis: any;
+    private scale: d3.ScaleTime<number, number, never>;
+    private xAxis: d3.Axis<Date>;
     // sizes
     private timebarHeight: number = 60;
     private headersWidth: number = 100;
     // data
-    public bars: GanttBar[];
-    public rows: GanttRow[];
+    private bars: GanttBar[];
+    private rows: GanttRow[];
     // time range
     public startDate: Date;
-    public endDate: Date;
+    private endDate: Date;
     // appearance
     public rowHeight: number = 100;
     public width: number = 2000;
@@ -50,9 +49,9 @@ export class Gantt {
     public resizeAnchorWidth: number = 3;
     // drag'n'drop
     private dragging: boolean;
-    private startXOfDragEvent? : number;
-    private draggedBarStartX? : number;
-    private draggedBarEndX? : number;
+    private startXOfDragEvent?: number;
+    private draggedBarStartX?: number;
+    private draggedBarEndX?: number;
     private draggedBarY?: number;
     // resizing
     private resizing: boolean;
@@ -69,23 +68,23 @@ export class Gantt {
         return (this.rowHeight * this.rows.length) + this.timebarHeight;
     }
 
-    private convertContainerXToGanttX(containerXCoord: number) : number {
+    private convertContainerXToGanttX(containerXCoord: number): number {
         return containerXCoord - this.headersWidth;
     }
 
-    private convertGanttXToContainerX(ganttXCoord : number) : number {
+    private convertGanttXToContainerX(ganttXCoord: number): number {
         return ganttXCoord + this.headersWidth;
     }
 
-    private calculateBarX(bar: GanttBar, x:number) : number {
-        return this.convertGanttXToContainerX(x+this.scale(bar.startTime));
+    private calculateBarX(bar: GanttBar, x: number): number {
+        return this.convertGanttXToContainerX(x + this.scale(bar.startTime));
     }
 
-    private calculateBarEndX(bar: GanttBar, x:number) : number {
-        return this.convertGanttXToContainerX(x+this.scale(bar.endTime));
+    private calculateBarEndX(bar: GanttBar, x: number): number {
+        return this.convertGanttXToContainerX(x + this.scale(bar.endTime));
     }
 
-    private calculateBarY(bar: GanttBar) : number {
+    private calculateBarY(bar: GanttBar): number {
         return (bar.row * this.rowHeight) + this.timebarHeight + ((this.rowHeight - bar.height) / 2);
     }
 
@@ -93,37 +92,37 @@ export class Gantt {
         return `translate(${this.calculateBarX(bar, x)}, ${this.calculateBarY(bar)})`
     }
 
-    private gXTransform =(bar: GanttBar, x: number, y: number) => {
-        return `translate(${this.convertGanttXToContainerX(x+this.scale(bar.startTime))}, ${y})`
-    } 
+    private gXTransform = (bar: GanttBar, x: number, y: number) => {
+        return `translate(${this.convertGanttXToContainerX(x + this.scale(bar.startTime))}, ${y})`
+    }
 
-    private gResizeTransform =(bar: GanttBar, scaleFactor: number, x : number, y: number) => {  
-        return `scale(${scaleFactor}, 1)  translate(${this.scale(bar.startTime)}, ${y})`      
+    private gResizeTransform = (bar: GanttBar, scaleFactor: number, x: number, y: number) => {
+        return `scale(${scaleFactor}, 1)  translate(${this.scale(bar.startTime)}, ${y})`
         //return `scale(${scaleFactor}, 1)  translate(${this.convertGanttXToContainerX(x)}, ${y})`      
         //return `scale(${scaleFactor}, 1)`
         //return `scale(3, 2)`
-    } 
+    }
 
 
-    private gOnStartResize(el: Element, event: any, bar: GanttBar) : any {
+    private gOnStartResize(el: Element, event: any, bar: GanttBar): any {
         console.log("start resizing");
-        this.startXOfResizeEvent = event.x;        
-        this.resizingBarStartX = this.scale(bar.startTime);        
-        this.resizingBarEndX = this.scale(bar.endTime);        
+        this.startXOfResizeEvent = event.x;
+        this.resizingBarStartX = this.scale(bar.startTime);
+        this.resizingBarEndX = this.scale(bar.endTime);
         this.resizingBarY = this.calculateBarY(bar);
 
         d3.select(el).raise().attr("stroke", "black");
-        this.resizing = true;        
+        this.resizing = true;
     }
 
-    private gOnResize(el: Element, event: any, bar: GanttBar) : any {
-        if (this.resizing) {    
+    private gOnResize(el: Element, event: any, bar: GanttBar): any {
+        if (this.resizing) {
             console.log(el.className);
             const delta = event.x - this.startXOfResizeEvent!;
-            const w = bar.width(this.scale);
+            const w = this.barWidth(bar);
             const scaleFactor = (w + delta) / w;
             const newWidth = w + delta;
-            let newEndTime = new Date(this.scale.invert(this.resizingBarEndX! + delta));            
+            let newEndTime = new Date(this.scale.invert(this.resizingBarEndX! + delta));
             console.log("resizing - scale factor:" + scaleFactor);
             //bar.endTime = newEndTime;
             //bar.startTime = new Date(this.resizingBarStartX!);
@@ -134,21 +133,21 @@ export class Gantt {
 
     }
 
-    private gOnEndResize(el : Element, event: any, bar: GanttBar) : any {
-        d3.select(el).attr("stroke", null);   
+    private gOnEndResize(el: Element, event: any, bar: GanttBar): any {
+        d3.select(el).attr("stroke", null);
         this.resizing = false;
     }
 
     private gOnStartDrag(el: Element, event: any, bar: GanttBar): any {
-        this.startXOfDragEvent = event.x;        
-        this.draggedBarStartX = this.scale(bar.startTime);        
+        this.startXOfDragEvent = event.x;
+        this.draggedBarStartX = this.scale(bar.startTime);
         this.draggedBarEndX = this.scale(bar.endTime);
         //console.log("current bar starts at " + this.draggedBarStartX + ' and ends at ' + this.draggedBarEndX);
         this.draggedBarY = this.calculateBarY(bar);
         if (this.onStartDrag! != undefined) {
             if (this.onStartDrag!(bar)) {
-              d3.select(el).raise().attr("stroke", "black");
-              this.dragging = true;
+                d3.select(el).raise().attr("stroke", "black");
+                this.dragging = true;
             } else {
                 this.dragging = false;
             }
@@ -160,7 +159,7 @@ export class Gantt {
 
     }
 
-    private gOnDrag(el: Element, event: any, bar: GanttBar) {                       
+    private gOnDrag(el: Element, event: any, bar: GanttBar) {
         if (this.dragging) {
             const delta = event.x - this.startXOfDragEvent!;
             //console.log("delta:" + delta + "draggedBarStartX:" + this.draggedBarStartX + " draggedBarEndX:" + this.draggedBarEndX);
@@ -169,7 +168,7 @@ export class Gantt {
             //console.log("new start time:" + newStartTime.toISOString() + " new end time:" + newEndTime.toISOString());
 
             // exceed left time limit
-            if (newStartTime < this.startDate) { 
+            if (newStartTime < this.startDate) {
                 console.log("exceed left time limit");
                 const newdelta_s = this.startDate.valueOf() - newStartTime.valueOf();
                 newStartTime = this.startDate;
@@ -180,9 +179,9 @@ export class Gantt {
                 newStartTime = new Date(newStartTime.valueOf() - newdelta_e);
                 newEndTime = this.endDate;
             }
-                
 
-            if (this.onDrag! != undefined){
+
+            if (this.onDrag! != undefined) {
                 if (this.onDrag!(bar, newStartTime, newEndTime)) {
                     bar.startTime = newStartTime;
                     bar.endTime = newEndTime;
@@ -194,8 +193,8 @@ export class Gantt {
                 bar.endTime = newEndTime;
                 d3.select(el)
                     .attr("transform", this.gXTransform(bar, 0, this.draggedBarY!));
-    
-            }            
+
+            }
         }
     }
 
@@ -204,7 +203,7 @@ export class Gantt {
             //console.log("on end drag");
             if (this.onEndDrag! != undefined) {
                 let updateBars = new Array();
-                if (this.onEndDrag!(bar, updateBars)) {                    
+                if (this.onEndDrag!(bar, updateBars)) {
                     for (let i = 0; i < updateBars.length; i++) {
                         let found = 0;
                         let k = 0;
@@ -214,7 +213,7 @@ export class Gantt {
                                 found = 1;
                             }
                             k++;
-                        }                        
+                        }
                     }
 
                 } else {
@@ -228,13 +227,87 @@ export class Gantt {
                 }
 
             }
-            d3.select(el).attr("stroke", null);    
+            d3.select(el).attr("stroke", null);
         }
-        this.dragging = false;        
+        this.dragging = false;
     }
 
-    public init() {
-        this.parent = d3.select(this.d3Container.current)
+    private barWidth = (bar: GanttBar) => {
+        return this.scale(bar.endTime) - this.scale(bar.startTime)
+    }
+
+    public loadBars() {
+        const referenceToGantt = this;
+
+        this.svgElementBars = this.pannableSvg.append("g")
+            .selectAll("g")
+            .data(this.bars)
+            .enter()
+            .append("g").call(d3drag.drag<any, GanttBar>()
+                // "referenceToGantt" refers to the gantt instance ("this" now), "this" is a group element (rect + text) in the function context, 
+                // event is the d3 event
+                // d is the datum aka GanttBar
+                .on("start", function (event, d) { referenceToGantt.gOnStartDrag(this, event, d) })
+                .on("drag", function (event, d) { referenceToGantt.gOnDrag(this, event, d) })
+                .on("end", function (event, d) { referenceToGantt.gOnEndDrag(this, event, d) })
+            )
+            .attr("id", (bar: GanttBar) => bar.id)
+            .attr("transform", (bar: GanttBar) => this.gTransform(bar, 0));
+
+
+        this.svgElementBars.append("rect")
+            // .attr("class", "barRect")
+            // .attr("x", (bar: GanttBar) => this.scale(bar.startTime) + this.headersWidth + this.margins.left)
+            // .attr("y", (bar: GanttBar) => (bar.row * this.rowHeight) + this.timebarHeight + ((this.rowHeight - bar.height) / 2) + this.margins.top)
+            .attr("rx", (bar: GanttBar) => bar.height * 0.15)
+            .attr("ry", (bar: GanttBar) => bar.height * 0.15)
+            .attr("width", this.barWidth)
+            .attr("height", (bar: GanttBar) => bar.height)
+            .attr("cursor", "pointer")
+            .style("opacity", (bar: GanttBar) => bar.opacity)
+            .attr("fill", (bar: GanttBar) => bar.barColor)
+
+        this.svgElementBars.append("text")
+            //.attr("x", (bar: GanttBar) => this.scale(bar.startTime) + this.headersWidth)
+            //.attr("y", (bar: GanttBar) => (bar.row * this.rowHeight) + this.timebarHeight + (bar.height / 2) + ((this.rowHeight - bar.height) / 2)) 
+            .attr("x", (bar: GanttBar) => this.barWidth(bar) / 2)
+            .attr("y", (bar: GanttBar) => this.rowHeight / 3)
+            .attr("text-anchor", "middle")
+            .attr("dominant-baseline", "middle")
+            .style("font-family", "Mono")
+            .style("font-size", "30px")
+            .attr("cursor", "pointer")
+            .text(function (bar: GanttBar) { return bar.caption; })
+
+        this.svgElementBars.append("rect")
+            .attr("x", (bar: GanttBar) => this.barWidth(bar) - this.resizeAnchorWidth)
+            .attr("y", (bar: GanttBar) => (bar.height - (bar.height / 3)) / 2)
+            .attr("width", this.resizeAnchorWidth)
+            .attr("height", (bar: GanttBar) => bar.height / 3)
+            .attr("cursor", "e-resize")
+            .style("opacity", (bar: GanttBar) => bar.opacity)
+            .call(d3drag.drag<any, GanttBar>()
+                // "referenceToGantt" refers to the gantt instance ("this" now), "this" is a group element (rect + text) in the function context, 
+                // event is the d3 event
+                // d is the datum aka GanttBar
+                .on("start", function (event, d) { referenceToGantt.gOnStartResize(this.parentNode, event, d) })
+                .on("drag", function (event, d) { referenceToGantt.gOnResize(this.parentNode, event, d) })
+                .on("end", function (event, d) { referenceToGantt.gOnEndResize(this.parentNode, event, d) })
+            )
+            ;
+
+        this.pannableSvg.on("click", (e: { target: any; }) => { console.log("clic! " + d3.select(e.target).datum()) });
+    }
+
+    constructor(container: HTMLElement, startDate: Date, endDate: Date, rows: GanttRow[], bars: GanttBar[]) {
+        this.rows = rows
+        this.bars = bars
+        this.startDate = startDate
+        this.endDate = endDate
+        this.dragging = false;
+        this.resizing = false;
+    
+        this.parent = d3.select(container)
             .append("div")
 
         this.headerSvg = this.parent.append("svg")
@@ -253,13 +326,13 @@ export class Gantt {
             .attr("width", this.width)
             .attr("height", this.height())
             .style("display", "block");
-    
+
 
         this.scale = d3.scaleTime()
             .range([0, this.width - this.headersWidth])
             .domain([this.startDate, this.endDate]);
 
-        this.xAxis = d3.axisTop(this.scale)
+        this.xAxis = d3.axisTop<Date>(this.scale)
             .ticks(d3.timeDay);
         //.tickFormat(d=>d3.timeFormat("%B %Y")(d));                     
 
@@ -308,79 +381,6 @@ export class Gantt {
         // Initialize the scroll offset after yielding the chart to the DOM.
         this.body.node().scrollBy(this.width, 0);
 
-    }
-
-    public loadBars() {
-        const referenceToGantt = this;
-
-        this.svgElementBars = this.pannableSvg.append("g")
-            .selectAll("g")
-            .data(this.bars)
-            .enter()
-            .append("g").call(d3drag.drag<any, GanttBar>()
-                // "referenceToGantt" refers to the gantt instance ("this" now), "this" is a group element (rect + text) in the function context, 
-                // event is the d3 event
-                // d is the datum aka GanttBar
-                .on("start", function (event, d) { referenceToGantt.gOnStartDrag(this, event, d) }) 
-                .on("drag", function (event, d) { referenceToGantt.gOnDrag(this, event, d) })
-                .on("end", function (event, d) { referenceToGantt.gOnEndDrag(this, event, d) })
-            )
-            .attr("id", (bar: GanttBar) => bar.id)            
-            .attr("transform", (bar: GanttBar) => this.gTransform(bar, 0));
-
-
-        this.svgElementBars.append("rect")
-            // .attr("class", "barRect")
-            // .attr("x", (bar: GanttBar) => this.scale(bar.startTime) + this.headersWidth + this.margins.left)
-            // .attr("y", (bar: GanttBar) => (bar.row * this.rowHeight) + this.timebarHeight + ((this.rowHeight - bar.height) / 2) + this.margins.top)
-            .attr("rx", (bar: GanttBar) => bar.height * 0.15)
-            .attr("ry", (bar: GanttBar) => bar.height * 0.15)
-            .attr("width", (bar: GanttBar) => bar.width(this.scale))
-            .attr("height", (bar: GanttBar) => bar.height)
-            .attr("cursor", "pointer")
-            .style("opacity", (bar: GanttBar) => bar.opacity)
-            .attr("fill", (bar: GanttBar) => bar.barColor)
-
-        this.svgElementBars.append("text")
-            //.attr("x", (bar: GanttBar) => this.scale(bar.startTime) + this.headersWidth)
-            //.attr("y", (bar: GanttBar) => (bar.row * this.rowHeight) + this.timebarHeight + (bar.height / 2) + ((this.rowHeight - bar.height) / 2)) 
-            .attr("x", (bar: GanttBar) => bar.width(this.scale) / 2)
-            .attr("y", (bar: GanttBar) => this.rowHeight/3)
-            .attr("text-anchor", "middle")
-            .attr("dominant-baseline", "middle")
-            .style("font-family", "Mono")
-            .style("font-size", "30px")
-            .attr("cursor", "pointer")
-            .text(function (bar: GanttBar) { return bar.caption; })
-        
-        this.svgElementBars.append("rect")
-            .attr("x", (bar:GanttBar) => bar.width(this.scale) - this.resizeAnchorWidth)
-            .attr("y", (bar: GanttBar) => (bar.height - (bar.height / 3)) / 2)
-            .attr("width", this.resizeAnchorWidth)
-            .attr("height", (bar: GanttBar) => bar.height / 3)
-            .attr("cursor", "e-resize")
-            .style("opacity", (bar: GanttBar) => bar.opacity)
-            .call(d3drag.drag<any, GanttBar>()
-                // "referenceToGantt" refers to the gantt instance ("this" now), "this" is a group element (rect + text) in the function context, 
-                // event is the d3 event
-                // d is the datum aka GanttBar
-                .on("start", function (event, d) { referenceToGantt.gOnStartResize(this.parentNode, event, d) }) 
-                .on("drag", function (event, d) { referenceToGantt.gOnResize(this.parentNode, event, d) })
-                .on("end", function (event, d) { referenceToGantt.gOnEndResize(this.parentNode, event, d) })
-            )            
-            ;
-
-        this.pannableSvg.on("click", (e: { target: any; }) => { console.log("clic! " + d3.select(e.target).datum()) });     
-    }
-
-    constructor(container: any) {
-        this.bars = new Array();
-        this.rows = new Array();
-        this.startDate = new Date();
-        this.endDate = new Date();
-        this.d3Container = container;        
-        this.dragging = false;
-        this.resizing = false;
     }
 
 

@@ -29,9 +29,4 @@ export class GanttBar {
         destination.caption = this.caption;
         destination.opacity = this.opacity;
     }
-
-    width (scale : any) : number {
-        return scale(this.endTime) - scale(this.startTime)
-
-    }
 }
