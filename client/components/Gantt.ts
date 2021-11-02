@@ -11,6 +11,11 @@
 // https://octoperf.com/blog/2018/04/18/d3-js-drag-and-drop-tutorial/#a-simpler-use-case
 // https://codepen.io/sfearl1/pen/gRayJE
 // https://bl.ocks.org/mbostock/2990a882e007f8384b04827617752738
+// https://newbedev.com/how-can-i-dynamically-resize-an-svg-rect-based-on-text-width
+// https://website.education.wisc.edu/~swu28/d3t/concept.html
+// https://stackoverflow.com/questions/31206525/how-to-resize-rectangle-in-d3-js
+// https://jsfiddle.net/SunboX/vj4jtdg8/
+
 
 import * as d3 from 'd3';
 import * as d3drag from 'd3-drag';
@@ -123,12 +128,15 @@ export class Gantt {
             const scaleFactor = (w + delta) / w;
             const newWidth = w + delta;
             let newEndTime = new Date(this.scale.invert(this.resizingBarEndX! + delta));
-            console.log("resizing - scale factor:" + scaleFactor);
-            //bar.endTime = newEndTime;
+            //console.log("resizing - scale factor:" + scaleFactor);
+            console.log("old width:" + w + " new width:" + newWidth);
+            //bar.endTime = newEndTime;                       
             //bar.startTime = new Date(this.resizingBarStartX!);
-            d3.select(el)
-                //.attr("width", newWidth);
-                .attr("transform", this.gResizeTransform(bar, scaleFactor, 0, this.resizingBarY!));
+            //d3.select(el)                
+            //    .enter()
+            //    .attr("width", newWidth)
+            //    .merge;
+                //.attr("transform", this.gResizeTransform(bar, scaleFactor, 0, this.resizingBarY!));
         }
 
     }
