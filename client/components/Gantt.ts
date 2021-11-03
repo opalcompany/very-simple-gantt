@@ -137,19 +137,9 @@ export class Gantt {
             bar.endTime = newEndTime
             //debugger
             var bs = d3.selectAll("g.svgElementBars")
-                .data(newBars)
-                
+                .data(newBars)                
 
             this.sticazzi(bs);
-            //console.log(bs.data.toString());
-
-            //bar.endTime = newEndTime;                       
-            //bar.startTime = new Date(this.resizingBarStartX!);
-            //d3.select(el)                
-            //    .enter()
-            //    .attr("width", newWidth)
-            //    .merge;
-            //.attr("transform", this.gResizeTransform(bar, scaleFactor, 0, this.resizingBarY!));
         }
 
     }
@@ -206,8 +196,7 @@ export class Gantt {
                 if (this.onDrag!(bar, newStartTime, newEndTime)) {
                     bar.startTime = newStartTime;
                     bar.endTime = newEndTime;
-                    d3.select(el)
-                        .attr("transform", this.gXTransform(bar, 0, this.draggedBarY!));
+
                 }
             } else {
                 bar.startTime = newStartTime;
@@ -216,6 +205,16 @@ export class Gantt {
                     .attr("transform", this.gXTransform(bar, 0, this.draggedBarY!));
 
             }
+
+            const newBars = this.bars //JSON.parse(JSON.stringify(this.bars)) as GanttBar[]
+            var bs = d3.selectAll("g.svgElementBars")
+                .data(newBars)                
+
+            this.sticazzi(bs);
+
+            //d3.select(el)
+            //    .attr("transform", this.gXTransform(bar, 0, this.draggedBarY!));
+                
         }
     }
 
