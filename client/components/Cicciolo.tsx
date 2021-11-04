@@ -53,16 +53,16 @@ export const Cicciolo: React.FC = () => {
                 b.startTime = dateLimit;//randomBarDate(dateLimit);
                 b.endTime = new Date(b.startTime.getTime() + MILLIS_IN_DAY * Math.random() * 7);
                 dateLimit = b.endTime//randomBarDate(b.endTime);
-                if(r==0)
+                if (r === 0)
                     expStart = b.endTime
                 b.height = 70;
                 b.barColor = d3.interpolateRainbow(Math.random());
-                b.id = e + "-" + r;
+                b.id = "AZZ" + e + "EXP" + r;
                 b.caption = "EX " + e + " ACT" + r;
                 const data = new GanttData();
-                b.data = data;
                 data.experimentId = e;
                 data.actionId = r + 1;
+                b.data = JSON.stringify(data);
                 bars.push(b);
             }
         }
@@ -70,7 +70,7 @@ export const Cicciolo: React.FC = () => {
         const gantt = new Gantt(d3Container.current!, startDate, new Date(2021, 9, 30), rows, bars);
 
         const onStartDrag = (bar: GanttBar): boolean => {
-            const d = bar.data!;
+            const d = JSON.parse(bar.data) as GanttData
             return (d.actionId == 1);
         }
 
@@ -78,16 +78,16 @@ export const Cicciolo: React.FC = () => {
 
         const onEndDrag = (bar: GanttBar, bars: GanttBar[]): boolean => {
             //return false;            
-            const data = bar.data!;
-            const currentExperiment = data.experimentId;
-            for (let expBar of bars) {
-                if (expBar.data!.experimentId == currentExperiment) {
-                    let b = new GanttBar;
-                    expBar.copyTo(b);
-                    b.barColor = d3.interpolateGreens(Math.random());
-                    bars.push(b);
-                }
-            }
+            //const d = JSON.parse(bar.data) as GanttData
+            //const currentExperiment = d.experimentId;
+            //for (let expBar of bars) {
+            //    if (d.experimentId == currentExperiment) {
+            //        let b = new GanttBar;
+            //        expBar.copyTo(b);
+            //        b.barColor = d3.interpolateGreens(Math.random());
+            //        bars.push(b);
+            //    }
+            //}
             return true;
         }
 

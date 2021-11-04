@@ -8,7 +8,7 @@ export class GanttBar {
     public barColor : string;
     public opacity : number;
     public caption : string;
-    public data? : any;
+    public data : string;
 
     constructor() {
         this.id = '';        
@@ -18,6 +18,7 @@ export class GanttBar {
         this.barColor = '#ffeeaa'; 
         this.caption = '';
         this.opacity = 0.5;
+        this.data = '';
     }
 
     public copyTo(destination : GanttBar) {
@@ -28,5 +29,6 @@ export class GanttBar {
         destination.barColor = this.barColor;
         destination.caption = this.caption;
         destination.opacity = this.opacity;
+        destination.data = this.data;
     }
 }

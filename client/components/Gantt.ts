@@ -58,6 +58,7 @@ export class Gantt {
     private startXOfDragEvent?: number;
     private draggedBarStartX?: number;
     private draggedBarEndX?: number;
+    private draggedBarId?: string;
     private draggedBarY?: number;
     // resizing
     private resizing: boolean;
@@ -98,8 +99,12 @@ export class Gantt {
     private gOnStartResize(el: any, event: any, bar: GanttBar): any {
         this.startXOfResizeEvent = d3.pointer(event, el)[0];
         this.resizingBarEndX = this.scale(bar.endTime);
-        d3.select(el.parentNode).raise().attr("stroke", "black");
         this.resizing = true;
+        //debugger
+        const pn = d3.select(el.parentNode);
+        console.log(pn)
+        pn.raise().attr("stroke", "black");
+        //d3.select(el).raise().attr("stroke", "black");        
     }
 
     private gOnResize(el: any, event: any, bar: GanttBar): any {
@@ -133,21 +138,26 @@ export class Gantt {
         this.startXOfDragEvent = event.x;
         this.draggedBarStartX = this.scale(bar.startTime);
         this.draggedBarEndX = this.scale(bar.endTime);
+        this.draggedBarId = d3.select(el).attr("id")
+        console.log("dragged bar id " + this.draggedBarId)
         //console.log("current bar starts at " + this.draggedBarStartX + ' and ends at ' + this.draggedBarEndX);
         this.draggedBarY = this.calculateBarY(bar);
         if (this.onStartDrag! != undefined) {
             if (this.onStartDrag!(bar)) {
-                d3.select(el).raise().attr("stroke", "black");
                 this.dragging = true;
+                d3.select('[id="' + this.draggedBarId! + '"]').style("opacity", bar.opacity / 2)
+                //d3.select('[id="' + this.draggedBarId! + '"]').raise().attr("stroke", "black");
+                //d3.select(el).raise().attr("stroke", "black");
             } else {
                 this.dragging = false;
             }
         } else {
-            d3.select(el).raise().attr("stroke", "black");
+            //d3.selector('[id="' + this.draggedBarId! + '"]').raise().attr("stroke", "black");
+            //d3.select('[id="' + this.draggedBarId! + '"]').raise().attr("stroke", "black");
+            d3.select('[id="' + this.draggedBarId! + '"]').style("opacity", bar.opacity / 2)
+            //d3.select(el).raise().attr("stroke", "black");
             this.dragging = true;
         }
-
-
     }
 
     private gOnDrag(el: Element, event: any, bar: GanttBar) {
@@ -174,7 +184,6 @@ export class Gantt {
                 if (this.onDrag!(bar, newStartTime, newEndTime)) {
                     bar.startTime = newStartTime;
                     bar.endTime = newEndTime;
-
                 }
             } else {
                 bar.startTime = newStartTime;
@@ -186,24 +195,23 @@ export class Gantt {
                 .data(newBars)
 
             this.doUpdateBars(bs);
-
-            //d3.select(el)
-            //    .attr("transform", this.gXTransform(bar, 0, this.draggedBarY!));
-
+            //d3.select('[id="' + this.draggedBarId! + '"]').raise().attr("stroke", "black");
+            d3.select('[id="' + this.draggedBarId! + '"]').style("opacity", bar.opacity / 2)
         }
     }
 
     private gOnEndDrag(el: Element, event: any, bar: GanttBar): any {
-        if (this.dragging) {            
+        if (this.dragging) {
+            d3.select('[id="' + this.draggedBarId! + '"]').raise().attr("stroke", null);
+            //d3.select(el).attr("stroke", null);
             if (this.onEndDrag! != undefined) {
                 const newBars = this.bars //JSON.parse(JSON.stringify(this.bars)) as GanttBar[]
                 this.onEndDrag!(bar, newBars)
                 var bs = d3.selectAll("g.ganttBar")
                     .data(newBars)
-                this.doUpdateBars(bs);                                
-                
+                this.doUpdateBars(bs);
+
             }
-            d3.select(el).attr("stroke", null);
         }
         this.dragging = false;
     }
@@ -216,6 +224,7 @@ export class Gantt {
         const referenceToGantt = this;
 
         this.svgElementBars = this.pannableSvg.append("g")
+            .attr("class", "ganttBars")
             .selectAll("g")
             .data(this.bars)
             .enter()
@@ -227,9 +236,9 @@ export class Gantt {
                 .on("drag", function (event, d) { referenceToGantt.gOnDrag(this, event, d) })
                 .on("end", function (event, d) { referenceToGantt.gOnEndDrag(this, event, d) })
             )
-            .attr("class", "ganttBar");
+            .attr("class", "ganttBar")
+            .attr("id", (bar: GanttBar) => { return bar.id });
 
-        const me = this
 
         const bars = this.svgElementBars
         bars.append("rect").attr("class", "ganttBarRect")
@@ -240,9 +249,9 @@ export class Gantt {
                 // "referenceToGantt" refers to the gantt instance ("this" now), "this" is a group element (rect + text) in the function context, 
                 // event is the d3 event
                 // d is the datum aka GanttBar
-                .on("start", function (event, d) { me.gOnStartResize(d3.select(this), event, d); })
-                .on("drag", function (event, d) { me.gOnResize(d3.select(this), event, d); })
-                .on("end", function (event, d) { me.gOnEndResize(d3.select(this), event, d); })
+                .on("start", function (event, d) { referenceToGantt.gOnStartResize(d3.select(this), event, d); })
+                .on("drag", function (event, d) { referenceToGantt.gOnResize(d3.select(this), event, d); })
+                .on("end", function (event, d) { referenceToGantt.gOnEndResize(d3.select(this), event, d); })
             );
 
 
