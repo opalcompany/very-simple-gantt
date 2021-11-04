@@ -19,6 +19,7 @@
 
 import * as d3 from 'd3';
 import * as d3drag from 'd3-drag';
+import { ThemeConsumer } from 'react-bootstrap/esm/ThemeProvider';
 //import { ThemeConsumer } from 'react-bootstrap/esm/ThemeProvider';
 import { GanttBar } from "./GanttBar"
 import { onGanttDragBarEvent, onGanttEndDragBarEvent, onGanttStartDragBarEvent } from './GanttEvents';
@@ -73,20 +74,12 @@ export class Gantt {
         return (this.rowHeight * this.rows.length) + this.timebarHeight;
     }
 
-    private convertContainerXToGanttX(containerXCoord: number): number {
-        return containerXCoord - this.headersWidth;
-    }
-
     private convertGanttXToContainerX(ganttXCoord: number): number {
         return ganttXCoord + this.headersWidth;
     }
 
     private calculateBarX(bar: GanttBar, x: number): number {
         return this.convertGanttXToContainerX(x + this.scale(bar.startTime));
-    }
-
-    private calculateBarEndX(bar: GanttBar, x: number): number {
-        return this.convertGanttXToContainerX(x + this.scale(bar.endTime));
     }
 
     private calculateBarY(bar: GanttBar): number {
@@ -101,45 +94,32 @@ export class Gantt {
         return `translate(${this.convertGanttXToContainerX(x + this.scale(bar.startTime))}, ${y})`
     }
 
-    private gResizeTransform = (bar: GanttBar, scaleFactor: number, x: number, y: number) => {
-        return `scale(${scaleFactor}, 1)  translate(${this.scale(bar.startTime)}, ${y})`
-        //return `scale(${scaleFactor}, 1)  translate(${this.convertGanttXToContainerX(x)}, ${y})`      
-        //return `scale(${scaleFactor}, 1)`
-        //return `scale(3, 2)`
-    }
-
-    private drawBar(bar: GanttBar) {
-        var b = d3.select('#' + bar.id);
-        //b.data.apply(bar);
-    }
-
 
     private gOnStartResize(el: any, event: any, bar: GanttBar): any {
-        console.log("start resizing");
         this.startXOfResizeEvent = d3.pointer(event, el)[0];
-        console.log("startXOfResizeEvent: " + this.startXOfResizeEvent +  " el.x " + el.attr("x"))
-        //this.resizingBarStartX = this.scale(bar.startTime);
         this.resizingBarEndX = this.scale(bar.endTime);
-        //this.resizingBarY = this.calculateBarY(bar);
-
         d3.select(el.parentNode).raise().attr("stroke", "black");
         this.resizing = true;
     }
 
     private gOnResize(el: any, event: any, bar: GanttBar): any {
         if (this.resizing) {
-            const newX = d3.pointer(event, el)[0]
-            const delta = newX - this.startXOfResizeEvent!;
+            const correctX = d3.pointer(event, el)[0]
+            const delta = correctX - this.startXOfResizeEvent!;
             let newEndTime = this.scale.invert(this.resizingBarEndX! + delta);
-            console.log("event.x:" + newX +  " el.x " + el.attr("x") + " delta:" + delta + " resizingBarEndX:" + this.resizingBarEndX! + " old end time:" + bar.endTime.toISOString() + " new end time:" + newEndTime.toISOString());
+            // avoid bar shorter than one second
+            if (newEndTime < bar.startTime) {
+                newEndTime = bar.startTime;
+                newEndTime.setSeconds(newEndTime.getSeconds() + 1);
+            }
             const newBars = this.bars //JSON.parse(JSON.stringify(this.bars)) as GanttBar[]
             //newBars.filter(b=>b.id===bar.id).forEach(b=>b.endTime = newEndTime)
             bar.endTime = newEndTime
             //debugger
-            var bs = d3.selectAll("g.svgElementBars")
-                .data(newBars)                
+            var bs = d3.selectAll("g.ganttBar")
+                .data(newBars)
 
-            this.sticazzi(bs);
+            this.doUpdateBars(bs);
         }
 
     }
@@ -173,10 +153,8 @@ export class Gantt {
     private gOnDrag(el: Element, event: any, bar: GanttBar) {
         if (this.dragging) {
             const delta = event.x - this.startXOfDragEvent!;
-            //console.log("delta:" + delta + "draggedBarStartX:" + this.draggedBarStartX + " draggedBarEndX:" + this.draggedBarEndX);
             let newStartTime = new Date(this.scale.invert(this.draggedBarStartX! + delta));
             let newEndTime = new Date(this.scale.invert(this.draggedBarEndX! + delta));
-            //console.log("new start time:" + newStartTime.toISOString() + " new end time:" + newEndTime.toISOString());
 
             // exceed left time limit
             if (newStartTime < this.startDate) {
@@ -201,51 +179,29 @@ export class Gantt {
             } else {
                 bar.startTime = newStartTime;
                 bar.endTime = newEndTime;
-                d3.select(el)
-                    .attr("transform", this.gXTransform(bar, 0, this.draggedBarY!));
-
             }
 
             const newBars = this.bars //JSON.parse(JSON.stringify(this.bars)) as GanttBar[]
-            var bs = d3.selectAll("g.svgElementBars")
-                .data(newBars)                
+            var bs = d3.selectAll("g.ganttBar")
+                .data(newBars)
 
-            this.sticazzi(bs);
+            this.doUpdateBars(bs);
 
             //d3.select(el)
             //    .attr("transform", this.gXTransform(bar, 0, this.draggedBarY!));
-                
+
         }
     }
 
     private gOnEndDrag(el: Element, event: any, bar: GanttBar): any {
-        if (this.dragging) {
-            //console.log("on end drag");
+        if (this.dragging) {            
             if (this.onEndDrag! != undefined) {
-                let updateBars = new Array();
-                if (this.onEndDrag!(bar, updateBars)) {
-                    for (let i = 0; i < updateBars.length; i++) {
-                        let found = 0;
-                        let k = 0;
-                        while ((found == 0) && (k < this.bars.length)) {
-                            if (this.bars[k].data!.id == updateBars[i].id) {
-                                updateBars[i].copyTo(this.bars[k]);
-                                found = 1;
-                            }
-                            k++;
-                        }
-                    }
-
-                } else {
-                    // if false, undo drag movement for current bar
-                    const newStartTime = new Date(this.scale.invert(this.draggedBarStartX!));
-                    const newEndTime = new Date(this.scale.invert(this.draggedBarEndX!));
-                    bar.startTime = newStartTime;
-                    bar.endTime = newEndTime;
-                    d3.select(el)
-                        .attr("transform", this.gXTransform(bar, 0, this.draggedBarY!));
-                }
-
+                const newBars = this.bars //JSON.parse(JSON.stringify(this.bars)) as GanttBar[]
+                this.onEndDrag!(bar, newBars)
+                var bs = d3.selectAll("g.ganttBar")
+                    .data(newBars)
+                this.doUpdateBars(bs);                                
+                
             }
             d3.select(el).attr("stroke", null);
         }
@@ -261,7 +217,6 @@ export class Gantt {
 
         this.svgElementBars = this.pannableSvg.append("g")
             .selectAll("g")
-            //.attr("class", "svgElementBars")
             .data(this.bars)
             .enter()
             .append("g").call(d3drag.drag<any, GanttBar>()
@@ -272,15 +227,15 @@ export class Gantt {
                 .on("drag", function (event, d) { referenceToGantt.gOnDrag(this, event, d) })
                 .on("end", function (event, d) { referenceToGantt.gOnEndDrag(this, event, d) })
             )
-            .attr("class", "svgElementBars");
+            .attr("class", "ganttBar");
 
         const me = this
 
         const bars = this.svgElementBars
-        bars.append("rect").attr("class", "main")
-        bars.append("text").attr("class", "caption")
+        bars.append("rect").attr("class", "ganttBarRect")
+        bars.append("text").attr("class", "ganttBarCaption")
         bars.append("rect")
-            .attr("class", "handle")
+            .attr("class", "ganttBarHandle")
             .call(d3drag.drag<any, GanttBar>()
                 // "referenceToGantt" refers to the gantt instance ("this" now), "this" is a group element (rect + text) in the function context, 
                 // event is the d3 event
@@ -291,8 +246,7 @@ export class Gantt {
             );
 
 
-        this.sticazzi(bars);
-
+        this.doUpdateBars(bars);
 
         this.pannableSvg.on("click", (e: { target: any; }) => { console.log("clic! " + d3.select(e.target).datum()) });
     }
@@ -381,26 +335,19 @@ export class Gantt {
 
     }
 
-
-
-    private sticazzi = (bars: d3.Selection<d3.BaseType, GanttBar, HTMLElement, any>) => {
+    private doUpdateBars = (bars: d3.Selection<d3.BaseType, GanttBar, HTMLElement, any>) => {
         bars.attr("transform", (bar: GanttBar) => this.gTransform(bar, 0));
-        bars.selectChild(".main")
-            // .attr("class", "barRect")
-            // .attr("x", (bar: GanttBar) => this.scale(bar.startTime) + this.headersWidth + this.margins.left)
-            // .attr("y", (bar: GanttBar) => (bar.row * this.rowHeight) + this.timebarHeight + ((this.rowHeight - bar.height) / 2) + this.margins.top)
+        bars.selectChild(".ganttBarRect")
             .attr("rx", (bar: GanttBar) => bar.height * 0.15)
             .attr("ry", (bar: GanttBar) => bar.height * 0.15)
             .attr("width", this.barWidth)
             .attr("height", (bar: GanttBar) => bar.height)
             .attr("cursor", "pointer")
             .style("opacity", (bar: GanttBar) => bar.opacity)
-            .attr("id", (bar: GanttBar) => "bar_" + bar.id)
+            .attr("id", (bar: GanttBar) => "gantt_bar_rect_" + bar.id)
             .attr("fill", (bar: GanttBar) => bar.barColor);
 
-        bars.selectChild(".caption")
-            //.attr("x", (bar: GanttBar) => this.scale(bar.startTime) + this.headersWidth)
-            //.attr("y", (bar: GanttBar) => (bar.row * this.rowHeight) + this.timebarHeight + (bar.height / 2) + ((this.rowHeight - bar.height) / 2)) 
+        bars.selectChild(".ganttBarCaption")
             .attr("x", (bar: GanttBar) => this.barWidth(bar) / 2)
             .attr("y", (bar: GanttBar) => this.rowHeight / 3)
             .attr("text-anchor", "middle")
@@ -408,17 +355,17 @@ export class Gantt {
             .style("font-family", "Mono")
             .style("font-size", "30px")
             .attr("cursor", "pointer")
-            .attr("id", (bar: GanttBar) => "text_" + bar.id)
+            .attr("id", (bar: GanttBar) => "gantt_bar_caption_" + bar.id)
             .text(function (bar: GanttBar) { return bar.caption; });
 
-        bars.selectChild(".handle")
+        bars.selectChild(".ganttBarHandle")
             .attr("x", (bar: GanttBar) => this.barWidth(bar) - this.resizeAnchorWidth)
             .attr("y", (bar: GanttBar) => (bar.height - (bar.height / 3)) / 2)
             .attr("width", this.resizeAnchorWidth)
             .attr("height", (bar: GanttBar) => bar.height / 3)
             .attr("cursor", "e-resize")
             .style("opacity", (bar: GanttBar) => bar.opacity)
-            .attr("id", (bar: GanttBar) => "resize_anchor_" + bar.id)
+            .attr("id", (bar: GanttBar) => "gantt_bar_handle_" + bar.id)
     }
 
     /**
