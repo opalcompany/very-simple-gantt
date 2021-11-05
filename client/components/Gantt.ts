@@ -110,13 +110,9 @@ export class Gantt {
                 newEndTime.setSeconds(newEndTime.getSeconds() + 1);
             }
             const newBars = this.bars //JSON.parse(JSON.stringify(this.bars)) as GanttBar[]
-            //newBars.filter(b=>b.id===bar.id).forEach(b=>b.endTime = newEndTime)
             bar.endTime = newEndTime
-            //debugger
-
             this.doUpdateBars(newBars);
         }
-
     }
 
     private gOnEndResize(el: any, event: any, bar: GanttBar): any {
@@ -135,7 +131,10 @@ export class Gantt {
             this.draggedBarId = bar.id;
             this.draggedBarY = this.calculateBarY(bar);
             this.dragging = true;
-            d3.select(`#${this.draggedBarId!}`).style("opacity", .5).raise()
+            d3.select(`#${this.draggedBarId!}`)
+                .style("opacity", .5)
+                .attr("cursor", "grabbing")
+                .raise()
         } else {
             this.dragging = false;
         }
@@ -178,13 +177,15 @@ export class Gantt {
 
     private gOnEndDrag(el: Element, event: any, bar: GanttBar): any {
         if (this.dragging) {
+            console.log("REEEEEEEEEEE")
             if (this.onEndDrag != undefined) {
                 const newBars = this.bars //JSON.parse(JSON.stringify(this.bars)) as GanttBar[]
                 this.onEndDrag(bar, newBars)
                 this.doUpdateBars(newBars);
             }
-            d3.select(`#${this.draggedBarId!}`)
-                .attr("stroke", null).style("opacity", null)
+            d3.select<any, GanttBar>(`#${this.draggedBarId!}`)
+                .style("opacity", null)
+                .attr("cursor", this.cursorForBar)
         }
         this.dragging = false;
     }
@@ -216,7 +217,7 @@ export class Gantt {
                 .on("end", function (event, d) { referenceToGantt.gOnEndDrag(this, event, d) })
             )
             .attr("class", "ganttBar")
-
+            .attr("cursor", this.cursorForBar)
 
         const bars = svgElementBars
         bars.append("rect").attr("class", "ganttBarRect")
@@ -327,7 +328,7 @@ export class Gantt {
 
     }
 
-    private cursorForBar = (bar: GanttBar) => bar.draggable ? "pointer" : "default";
+    private cursorForBar = (bar: GanttBar) => bar.draggable ? "grab" : "default";
 
     private doUpdateBars = (nbars: GanttBar[]) => {
         var ids = d3.selectAll<SVGGElement, GanttBar>("g.ganttBar").data().map(b => b.id)
@@ -343,7 +344,6 @@ export class Gantt {
             .attr("ry", (bar: GanttBar) => bar.height * 0.15)
             .attr("width", this.barWidth)
             .attr("height", (bar: GanttBar) => bar.height)
-            .attr("cursor", this.cursorForBar)
             .style("opacity", (bar: GanttBar) => bar.opacity)
             .attr("fill", (bar: GanttBar) => bar.barColor)
 
@@ -355,7 +355,7 @@ export class Gantt {
             .attr("dominant-baseline", "middle")
             .style("font-family", "Mono")
             .style("font-size", "30px")
-            .attr("cursor", this.cursorForBar)
+            .attr("cursor", "inherited")
             .text(function (bar: GanttBar) { return bar.caption; });
 
         bars.selectChild(".ganttBarHandle")
