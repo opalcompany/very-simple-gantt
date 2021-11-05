@@ -63,7 +63,7 @@ export const Cicciolo: React.FC = () => {
                 data.experimentId = e;
                 data.actionId = r + 1;
                 b.draggable = data.actionId === 1;
-                b.resizeble = true;
+                b.resizeble = r === 0 || (r + e) % 2 === 0
                 b.data = JSON.stringify(data);
                 bars.push(b);
             }
