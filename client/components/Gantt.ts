@@ -223,7 +223,13 @@ export class Gantt {
         bars.append("rect").attr("class", "ganttBarRect")
         bars.append("text").attr("class", "ganttBarCaption")
 
-        bars.filter((bar: GanttBar) => bar.resizeble).append("rect")
+        bars.filter((bar: GanttBar) => bar.draggable)
+            .append("rect")
+            .attr("class", "ganttBarDraggableIndicator")
+
+
+        bars.filter((bar: GanttBar) => bar.resizeble)
+            .append("rect")
             .attr("class", "ganttBarHandle")
             .attr("width", this.resizeAnchorWidth)
             .call(d3drag.drag<any, GanttBar>()
@@ -233,7 +239,8 @@ export class Gantt {
                 .on("start", function (event, d) { referenceToGantt.gOnStartResize(d3.select(this), event, d); })
                 .on("drag", function (event, d) { referenceToGantt.gOnResize(d3.select(this), event, d); })
                 .on("end", function (event, d) { referenceToGantt.gOnEndResize(d3.select(this), event, d); })
-            );
+            )
+
 
 
         this.doUpdateBars(this.bars);
@@ -252,7 +259,19 @@ export class Gantt {
         const parent = d3.select(container)
             .append("div")
 
-        const headerSvg = parent.append("svg")
+        const svg = parent.append("svg")
+
+        svg.append("pattern")
+            .attr("id", "grabPattern")
+            .attr("patternUnits", "userSpaceOnUse")
+            .attr("width", 4)
+            .attr("height", 4)
+            .append("path").attr("d", "M-1,1 l2,-2   M0, 4 l4, -4   M3, 5 l2, -2")
+            .style("stroke", "black")
+            .style("opacity", .3)
+            .style("stroke-width", "1")
+
+        const headerSvg = svg
             .attr("class", "header")
             .attr("width", this.width)
             .attr("height", this.height())
@@ -286,7 +305,7 @@ export class Gantt {
             .attr("width", () => this.headersWidth)
             .attr("height", () => this.rowHeight)
             .attr("fill", (row: GanttRow) => row.color)
-            .attr("stroke", (row: GanttRow) => row.borderColor);
+            .attr("stroke", (row: GanttRow) => row.borderColor)
 
         svgElementsHeader.append("text")
             .attr("x", () => (this.headersWidth / 2))
@@ -339,9 +358,10 @@ export class Gantt {
         bars.attr("transform", (bar: GanttBar) => this.gTransform(bar, 0))
             .attr("id", (bar: GanttBar) => { return bar.id })
 
+        const roundness = 0.08;
         bars.selectChild(".ganttBarRect")
-            .attr("rx", (bar: GanttBar) => bar.height * 0.15)
-            .attr("ry", (bar: GanttBar) => bar.height * 0.15)
+            .attr("rx", (bar: GanttBar) => bar.height * roundness)
+            .attr("ry", (bar: GanttBar) => bar.height * roundness)
             .attr("width", this.barWidth)
             .attr("height", (bar: GanttBar) => bar.height)
             .style("opacity", (bar: GanttBar) => bar.opacity)
@@ -364,6 +384,17 @@ export class Gantt {
             .attr("height", (bar: GanttBar) => bar.height / 3)
             .attr("cursor", "e-resize")
             .style("opacity", (bar: GanttBar) => bar.opacity)
+
+        bars.selectChild(".ganttBarDraggableIndicator")
+            .attr("width", (bar: GanttBar) => bar.height * roundness)
+            .attr("height", (bar: GanttBar) => bar.height * (1 - 2 * roundness))
+            .attr("rx", (bar: GanttBar) => bar.height * roundness / 2)
+            .attr("ry", (bar: GanttBar) => bar.height * roundness / 2)
+            .attr("fill", (bar: GanttBar) => "black")
+            .attr("x", (bar: GanttBar) => bar.height * roundness)
+            .attr("y", (bar: GanttBar) => bar.height * roundness)
+            .style("opacity", (bar: GanttBar) => .2)
+            .attr("visibility", (bar: GanttBar) => this.barWidth(bar) > 3 * bar.height * roundness ? "visible" : "hidden")
     }
 
     /**
