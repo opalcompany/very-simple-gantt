@@ -9,6 +9,8 @@ export class GanttBar {
     public opacity : number;
     public caption : string;
     public data : string;
+    public draggable: boolean = false;
+    public resizeble: boolean = false;
 
     constructor() {
         this.id = '';        

@@ -62,19 +62,14 @@ export const Cicciolo: React.FC = () => {
                 const data = new GanttData();
                 data.experimentId = e;
                 data.actionId = r + 1;
+                b.draggable = data.actionId === 1;
+                b.resizeble = true;
                 b.data = JSON.stringify(data);
                 bars.push(b);
             }
         }
 
         const gantt = new Gantt(d3Container.current!, startDate, new Date(2021, 9, 30), rows, bars);
-
-        const onStartDrag = (bar: GanttBar): boolean => {
-            const d = JSON.parse(bar.data) as GanttData
-            return (d.actionId == 1);
-        }
-
-        gantt.onStartDrag = onStartDrag;
 
         const onEndDrag = (bar: GanttBar, bars: GanttBar[]): boolean => {
             //return false;            
