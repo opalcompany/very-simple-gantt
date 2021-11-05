@@ -57,7 +57,7 @@ export const Cicciolo: React.FC = () => {
                     expStart = b.endTime
                 b.height = 70;
                 b.barColor = d3.interpolateRainbow(Math.random());
-                b.id = "AZZ" + e + "EXP" + r;
+                b.id = "EXP" + e + "AZZ" + r;
                 b.caption = "EX " + e + " ACT" + r;
                 const data = new GanttData();
                 data.experimentId = e;
