@@ -142,21 +142,13 @@ export class Gantt {
         console.log("dragged bar id " + this.draggedBarId)
         //console.log("current bar starts at " + this.draggedBarStartX + ' and ends at ' + this.draggedBarEndX);
         this.draggedBarY = this.calculateBarY(bar);
-        if (this.onStartDrag! != undefined) {
-            if (this.onStartDrag!(bar)) {
+        if (this.onStartDrag && this.onStartDrag(bar)) {
                 this.dragging = true;
                 d3.select('[id="' + this.draggedBarId! + '"]').style("opacity", bar.opacity / 2)
                 //d3.select('[id="' + this.draggedBarId! + '"]').raise().attr("stroke", "black");
                 //d3.select(el).raise().attr("stroke", "black");
             } else {
                 this.dragging = false;
-            }
-        } else {
-            //d3.selector('[id="' + this.draggedBarId! + '"]').raise().attr("stroke", "black");
-            //d3.select('[id="' + this.draggedBarId! + '"]').raise().attr("stroke", "black");
-            d3.select('[id="' + this.draggedBarId! + '"]').style("opacity", bar.opacity / 2)
-            //d3.select(el).raise().attr("stroke", "black");
-            this.dragging = true;
         }
     }
 
