@@ -86,6 +86,11 @@ export class Gantt {
         return `translate(${this.convertGanttXToContainerX(x + this.scale(bar.startTime))}, ${y})`
     }
 
+    private idToValidDomId = (id: String) => {
+        //return '[id="' + id + '"]'
+        return "g" + id.replace(/[ ]/g, "_")
+    }
+
 
     private gOnStartResize(el: any, event: any, bar: GanttBar): any {
         console.log("start resize: " + bar.id + " " + bar.resizeble);
@@ -95,8 +100,8 @@ export class Gantt {
         this.resizingBarEndX = this.scale(bar.endTime);
         this.resizing = true;
 
-        const pn = d3.select<any, any>(`#${bar.id}`);
-        pn.raise().style("opacity", .5)
+        const pn = d3.select<any, any>("#" + this.idToValidDomId(bar.id));
+        pn.raise().style("opacity", bar.opacity / 2)
     }
 
     private gOnResize(el: any, event: any, bar: GanttBar): any {
@@ -116,7 +121,7 @@ export class Gantt {
     }
 
     private gOnEndResize(el: any, event: any, bar: GanttBar): any {
-        const pn = d3.select<any, any>(`#${bar.id}`);
+        const pn = d3.select<any, any>("#" + this.idToValidDomId(bar.id));
         pn.style("opacity", null)
         this.resizing = false;
     }
@@ -131,8 +136,8 @@ export class Gantt {
             this.draggedBarId = bar.id;
             this.draggedBarY = this.calculateBarY(bar);
             this.dragging = true;
-            d3.select(`#${this.draggedBarId!}`)
-                .style("opacity", .5)
+            d3.select("#" + this.idToValidDomId(this.draggedBarId!))
+                .style("opacity", bar.opacity / 2)
                 .attr("cursor", "grabbing")
                 .raise()
         } else {
@@ -183,8 +188,8 @@ export class Gantt {
                 this.onEndDrag(bar, newBars)
                 this.doUpdateBars(newBars);
             }
-            d3.select<any, GanttBar>(`#${this.draggedBarId!}`)
-                .style("opacity", null)
+            d3.select<any, GanttBar>("#" + this.idToValidDomId(this.draggedBarId!))
+                .style("opacity", null) //bar.opacity)
                 .attr("cursor", this.cursorForBar)
         }
         this.dragging = false;
@@ -206,7 +211,7 @@ export class Gantt {
             .enter()
             .append("g")
             .on("click", (e: { target: any; }, bar: GanttBar) => {
-                d3.select(`#${bar.id}`).lower()
+                d3.select("#" + this.idToValidDomId(bar.id)).lower()
             })
             .call(d3drag.drag<any, GanttBar>()
                 // "referenceToGantt" refers to the gantt instance ("this" now), "this" is a group element (rect + text) in the function context, 
@@ -356,7 +361,7 @@ export class Gantt {
         var bars = d3.selectAll<SVGGElement, GanttBar>("g.ganttBar").data(nbars)
 
         bars.attr("transform", (bar: GanttBar) => this.gTransform(bar, 0))
-            .attr("id", (bar: GanttBar) => { return bar.id })
+            .attr("id", (bar: GanttBar) => { return this.idToValidDomId(bar.id) })
 
         const roundness = 0.08;
         bars.selectChild(".ganttBarRect")
