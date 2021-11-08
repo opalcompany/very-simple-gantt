@@ -199,6 +199,10 @@ export class Gantt {
         return this.scale(bar.endTime) - this.scale(bar.startTime)
     }
 
+    private getBarId(bar: any, i : number, g: any) : KeyType {
+        return bar.id;
+    }
+
     public loadBars() {
         const referenceToGantt = this;
 
@@ -207,7 +211,7 @@ export class Gantt {
         const svgElementBars = pannableSvg.append("g")
             .attr("class", "ganttBars")
             .selectAll("g")
-            .data(this.bars)
+            .data(this.bars, this.getBarId)
             .enter()
             .append("g")
             .on("click", (e: { target: any; }, bar: GanttBar) => {
@@ -355,10 +359,10 @@ export class Gantt {
     private cursorForBar = (bar: GanttBar) => bar.draggable ? "grab" : "default";
 
     private doUpdateBars = (nbars: GanttBar[]) => {
-        var ids = d3.selectAll<SVGGElement, GanttBar>("g.ganttBar").data().map(b => b.id)
-        nbars = ids.map(id => nbars.find(b => b.id === id)!)
+        //var ids = d3.selectAll<SVGGElement, GanttBar>("g.ganttBar").data().map(b => b.id)
+        //nbars = ids.map(id => nbars.find(b => b.id === id)!)
 
-        var bars = d3.selectAll<SVGGElement, GanttBar>("g.ganttBar").data(nbars)
+        var bars = d3.selectAll<SVGGElement, GanttBar>("g.ganttBar").data(nbars, (bar:GanttBar) => {return bar.id})
 
         bars.attr("transform", (bar: GanttBar) => this.gTransform(bar, 0))
             .attr("id", (bar: GanttBar) => { return this.idToValidDomId(bar.id) })
