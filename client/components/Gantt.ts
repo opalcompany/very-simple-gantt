@@ -20,7 +20,7 @@
 import * as d3 from 'd3';
 import * as d3drag from 'd3-drag';
 import { GanttBar } from "./GanttBar"
-import { onGanttDragBarEvent, onGanttEndDragBarEvent, onGanttStartDragBarEvent } from './GanttEvents';
+import { onGanttDragBarEvent, onGanttEndDragBarEvent, OnGanttEndResizeBarEvent, onGanttResizeBarEvent, onGanttStartDragBarEvent, onGanttStartResizeBarEvent } from './GanttEvents';
 import { GanttRow } from './GanttRow';
 //import { Margins } from './Margins';
 
@@ -56,8 +56,14 @@ export class Gantt {
     private resizingBarEndX?: number;
     //private resizingBarY?: number;
 
+    public onStartDrag?: onGanttStartDragBarEvent;
     public onDrag?: onGanttDragBarEvent;
     public onEndDrag?: onGanttEndDragBarEvent;
+
+    public onStartResize?: onGanttStartResizeBarEvent;
+    public onResize?: onGanttResizeBarEvent;
+    public onEndResize?: OnGanttEndResizeBarEvent;
+
     container: HTMLElement;
 
     private height(): number {
@@ -92,7 +98,11 @@ export class Gantt {
 
     private gOnStartResize(el: any, event: any, bar: GanttBar): any {
         console.log("start resize: " + bar.id + " " + bar.resizeble);
-        if (!bar.resizeble)
+        let doIt = bar.resizeble;
+        if (this.onStartResize! != undefined) {
+            doIt = doIt && this.onStartResize(bar);
+        }
+        if (!doIt)
             return
         this.startXOfResizeEvent = d3.pointer(event, el)[0];
         this.resizingBarEndX = this.scale(bar.endTime);
@@ -112,7 +122,8 @@ export class Gantt {
                 newEndTime = bar.startTime;
                 newEndTime.setSeconds(newEndTime.getSeconds() + 1);
             }
-            const newBars = this.bars //JSON.parse(JSON.stringify(this.bars)) as GanttBar[]
+            let newBars = this.bars 
+
             bar.endTime = newEndTime
             this.doUpdateBars(newBars);
         }
@@ -127,7 +138,11 @@ export class Gantt {
     private gOnStartDrag(el: Element, event: any, bar: GanttBar): any {
         console.log("try to drag bar id " + bar.id)
         //console.log("current bar starts at " + this.draggedBarStartX + ' and ends at ' + this.draggedBarEndX);
-        if (bar.draggable) {
+        let doIt = bar.draggable;
+        if (this.onStartDrag! != undefined) {
+            doIt = doIt && this.onStartDrag!(bar);
+        }
+        if (doIt) {
             this.startXOfDragEvent = event.x;
             this.draggedBarStartX = this.scale(bar.startTime);
             this.draggedBarEndX = this.scale(bar.endTime);
@@ -165,9 +180,9 @@ export class Gantt {
             let newBars = this.bars
 
             if (this.onDrag! != undefined) {
-                const success = this.onDrag!(bar, newStartTime, newEndTime, newBars);
-                console.log("success " + success);
-                if (success === true) {
+                const doIt = this.onDrag!(bar, newStartTime, newEndTime, newBars);
+                console.log("success " + doIt);
+                if (doIt === true) {
                     bar.startTime = newStartTime;
                     bar.endTime = newEndTime;
                     this.doUpdateBars(newBars);

@@ -3,6 +3,7 @@ import * as d3 from 'd3';
 import { GanttBar } from './GanttBar'
 import { Gantt } from './Gantt'
 import { GanttRow } from './GanttRow';
+import { exit } from 'process';
 
 function randomDate(start: Date, end: Date) {
     const d = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
@@ -72,7 +73,7 @@ export const Cicciolo: React.FC = () => {
 
         const gantt = new Gantt(d3Container.current!, startDate, endDate, rows, bars);
 
-        const onEndDrag = (bar: GanttBar, bars: GanttBar[]): boolean => {
+        const onEndDrag = (bar: GanttBar, bars: GanttBar[]): void => {
             //return false;            
             //const d = JSON.parse(bar.data) as GanttData
             //const currentExperiment = d.experimentId;
@@ -84,27 +85,38 @@ export const Cicciolo: React.FC = () => {
             //        bars.push(b);
             //    }
             //}
-            return true;
+            //return true;
         }
 
         const onDrag = (bar: GanttBar, newStartTime: Date, newEndTime: Date, bars: GanttBar[]): boolean => {
             const draggedBarData = JSON.parse(bar.data) as GanttData;
             console.log("dragging experiment " + draggedBarData.experimentId! + " action " + draggedBarData.actionId!);
             const delta = newStartTime.valueOf() - bar.startTime.valueOf();
+            let returnValue = true;
 
             bars.forEach(b => {
                 const bd = JSON.parse(b.data) as GanttData;
-                if ((bd.experimentId! === draggedBarData.experimentId!) && (bd.actionId! > draggedBarData.actionId!)) {
-                    b.startTime = new Date(b.startTime.valueOf() + delta);
-                    b.endTime = new Date(b.endTime.valueOf() + delta);
-                    if (b.endTime > endDate) {
+                if ((bd.experimentId! === draggedBarData.experimentId!) && (bd.actionId! > draggedBarData.actionId!)) {                    
+                    const tmpEndTime = new Date(b.endTime.valueOf() + delta);
+                    if (tmpEndTime > endDate) {
                         console.log("touched right limit!")
-                        return false;
+                        returnValue = false;
                     }
                 }
             });
-            console.log("success");
-            return true;
+
+            if (returnValue === true) {
+                bars.forEach(b => {
+                    const bd = JSON.parse(b.data) as GanttData;
+                    if ((bd.experimentId! === draggedBarData.experimentId!) && (bd.actionId! > draggedBarData.actionId!)) {
+                        b.startTime = new Date(b.startTime.valueOf() + delta);
+                        b.endTime = new Date(b.endTime.valueOf() + delta);
+                    }
+                });
+   
+            }
+            console.log("returnValue:" + returnValue);
+            return returnValue;
         }
 
         gantt.onEndDrag = onEndDrag;
