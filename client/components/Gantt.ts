@@ -19,8 +19,6 @@
 
 import * as d3 from 'd3';
 import * as d3drag from 'd3-drag';
-import { ThemeConsumer } from 'react-bootstrap/esm/ThemeProvider';
-//import { ThemeConsumer } from 'react-bootstrap/esm/ThemeProvider';
 import { GanttBar } from "./GanttBar"
 import { onGanttDragBarEvent, onGanttEndDragBarEvent, onGanttStartDragBarEvent } from './GanttEvents';
 import { GanttRow } from './GanttRow';
@@ -164,19 +162,26 @@ export class Gantt {
                 newEndTime = this.endDate;
             }
 
+            let newBars = this.bars
 
             if (this.onDrag! != undefined) {
-                if (this.onDrag!(bar, newStartTime, newEndTime)) {
+                const success = this.onDrag!(bar, newStartTime, newEndTime, newBars);
+                console.log("success " + success);
+                if (success === true) {
                     bar.startTime = newStartTime;
                     bar.endTime = newEndTime;
+                    this.doUpdateBars(newBars);
+                }
+                else {
+                    console.log("abort dragging!");
                 }
             } else {
                 bar.startTime = newStartTime;
                 bar.endTime = newEndTime;
+                this.doUpdateBars(newBars);
             }
 
-            const newBars = this.bars //JSON.parse(JSON.stringify(this.bars)) as GanttBar[]
-            this.doUpdateBars(newBars);
+
         }
     }
 
@@ -199,8 +204,8 @@ export class Gantt {
         return this.scale(bar.endTime) - this.scale(bar.startTime)
     }
 
-    private getBarId(bar: any, i : number, g: any) : KeyType {
-        return bar.id;
+    private getBarId(bar: any, i: number, g: any): KeyType {
+        return bar.id
     }
 
     public loadBars() {
@@ -362,7 +367,7 @@ export class Gantt {
         //var ids = d3.selectAll<SVGGElement, GanttBar>("g.ganttBar").data().map(b => b.id)
         //nbars = ids.map(id => nbars.find(b => b.id === id)!)
 
-        var bars = d3.selectAll<SVGGElement, GanttBar>("g.ganttBar").data(nbars, (bar:GanttBar) => {return bar.id})
+        var bars = d3.selectAll<SVGGElement, GanttBar>("g.ganttBar").data(nbars, (bar: GanttBar) => { return bar.id })
 
         bars.attr("transform", (bar: GanttBar) => this.gTransform(bar, 0))
             .attr("id", (bar: GanttBar) => { return this.idToValidDomId(bar.id) })

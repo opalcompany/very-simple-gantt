@@ -43,6 +43,7 @@ export const Cicciolo: React.FC = () => {
         }
 
         let expStart = startDate
+        const endDate = new Date(2021, 9, 30)
 
         for (let e = 1; e <= 2; e++) {
             let dateLimit = expStart
@@ -69,7 +70,7 @@ export const Cicciolo: React.FC = () => {
             }
         }
 
-        const gantt = new Gantt(d3Container.current!, startDate, new Date(2021, 9, 30), rows, bars);
+        const gantt = new Gantt(d3Container.current!, startDate, endDate, rows, bars);
 
         const onEndDrag = (bar: GanttBar, bars: GanttBar[]): boolean => {
             //return false;            
@@ -86,7 +87,28 @@ export const Cicciolo: React.FC = () => {
             return true;
         }
 
+        const onDrag = (bar: GanttBar, newStartTime: Date, newEndTime: Date, bars: GanttBar[]): boolean => {
+            const draggedBarData = JSON.parse(bar.data) as GanttData;
+            console.log("dragging experiment " + draggedBarData.experimentId! + " action " + draggedBarData.actionId!);
+            const delta = newStartTime.valueOf() - bar.startTime.valueOf();
+
+            bars.forEach(b => {
+                const bd = JSON.parse(b.data) as GanttData;
+                if ((bd.experimentId! === draggedBarData.experimentId!) && (bd.actionId! > draggedBarData.actionId!)) {
+                    b.startTime = new Date(b.startTime.valueOf() + delta);
+                    b.endTime = new Date(b.endTime.valueOf() + delta);
+                    if (b.endTime > endDate) {
+                        console.log("touched right limit!")
+                        return false;
+                    }
+                }
+            });
+            console.log("success");
+            return true;
+        }
+
         gantt.onEndDrag = onEndDrag;
+        gantt.onDrag = onDrag;
 
         const updateChart = () => {
             gantt.loadBars();
