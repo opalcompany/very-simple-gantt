@@ -146,6 +146,12 @@ export class Gantt {
         const pn = d3.select<any, any>("#" + this.idToValidDomId(bar.id));
         pn.style("opacity", null)
         this.resizing = false;
+        if (this.onEndResize != undefined) {
+            const newBars = this.bars;
+            this.onEndResize(bar, newBars);
+            this.doUpdateBars(newBars);
+        }
+
     }
 
     private gOnStartDrag(el: Element, event: any, bar: GanttBar): any {
@@ -215,7 +221,6 @@ export class Gantt {
 
     private gOnEndDrag(el: Element, event: any, bar: GanttBar): any {
         if (this.dragging) {
-            console.log("REEEEEEEEEEE")
             if (this.onEndDrag != undefined) {
                 const newBars = this.bars //JSON.parse(JSON.stringify(this.bars)) as GanttBar[]
                 this.onEndDrag(bar, newBars)
