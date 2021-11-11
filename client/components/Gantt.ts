@@ -122,21 +122,14 @@ export class Gantt {
                 newEndTime = bar.startTime;
                 newEndTime.setSeconds(newEndTime.getSeconds() + 1);
             }
-            let newBars = this.bars
-
-            if (this.onResize! != undefined) {
-                const doIt = this.onResize!(bar, newEndTime, newBars);
-                console.log("success " + doIt);
-                if (doIt === true) {
-                    bar.endTime = newEndTime
-                    this.doUpdateBars(newBars);
-                }
-                else {
-                    console.log("abort dragging!");
-                }
+            if (this.onResize) {
+                const clonedBars: GanttBar[] = [];
+                this.cloneBars(this.bars, clonedBars)
+                this.onResize(bar, newEndTime, clonedBars);
+                this.assignBars(clonedBars, this.bars)
             } else {
                 bar.endTime = newEndTime
-                this.doUpdateBars(newBars);
+                this.doUpdateBars(this.bars);
             }
 
         }
@@ -147,9 +140,8 @@ export class Gantt {
         pn.style("opacity", null)
         this.resizing = false;
         if (this.onEndResize != undefined) {
-            const newBars = this.bars;
-            this.onEndResize(bar, newBars);
-            this.doUpdateBars(newBars);
+            this.onEndResize(bar, this.bars);
+            //this.doUpdateBars(newBars);
         }
 
     }
@@ -196,23 +188,25 @@ export class Gantt {
                 newEndTime = this.endDate;
             }
 
-            let newBars = this.bars
-
             if (this.onDrag! != undefined) {
-                const doIt = this.onDrag!(bar, newStartTime, newBars);
-                console.log("success " + doIt);
-                if (doIt === true) {
-                    bar.startTime = newStartTime;
-                    bar.endTime = newEndTime;
-                    this.doUpdateBars(newBars);
-                }
-                else {
-                    console.log("abort dragging!");
-                }
+                const clonedBars: GanttBar[] = [];
+                this.cloneBars(this.bars, clonedBars)
+
+                const doIt = this.onDrag!(bar, newStartTime, clonedBars)
+                this.assignBars(clonedBars, this.bars)
+                //console.log("success " + doIt);
+                //if (doIt === true) {
+                //    //bar.startTime = newStartTime;
+                //    //bar.endTime = newEndTime;
+                //    this.doUpdateBars(newBars);
+                //}
+                //else {
+                //    console.log("abort dragging!");
+                //}
             } else {
                 bar.startTime = newStartTime;
                 bar.endTime = newEndTime;
-                this.doUpdateBars(newBars);
+                this.doUpdateBars(this.bars);
             }
 
 
@@ -222,9 +216,7 @@ export class Gantt {
     private gOnEndDrag(el: Element, event: any, bar: GanttBar): any {
         if (this.dragging) {
             if (this.onEndDrag != undefined) {
-                const newBars = this.bars //JSON.parse(JSON.stringify(this.bars)) as GanttBar[]
-                this.onEndDrag(bar, newBars)
-                this.doUpdateBars(newBars);
+                this.onEndDrag(bar, this.bars)
             }
             d3.select<any, GanttBar>("#" + this.idToValidDomId(this.draggedBarId!))
                 .style("opacity", null) //bar.opacity)
@@ -237,10 +229,6 @@ export class Gantt {
         return this.scale(bar.endTime) - this.scale(bar.startTime)
     }
 
-    private getBarId(bar: any, i: number, g: any): KeyType {
-        return bar.id
-    }
-
     public loadBars() {
         const referenceToGantt = this;
 
@@ -248,8 +236,8 @@ export class Gantt {
 
         const svgElementBars = pannableSvg.append("g")
             .attr("class", "ganttBars")
-            .selectAll("g")
-            .data(this.bars, this.getBarId)
+            .selectAll<SVGGElement, GanttBar>("g")
+            .data(this.bars, (bar: GanttBar) => bar.id)
             .enter()
             .append("g")
             .on("click", (e: { target: any; }, bar: GanttBar) => {
@@ -396,11 +384,31 @@ export class Gantt {
 
     private cursorForBar = (bar: GanttBar) => bar.draggable ? "grab" : "default";
 
-    private doUpdateBars = (nbars: GanttBar[]) => {
+    public assignBars(sourceBars: GanttBar[], destinationBars: GanttBar[]) {
+        sourceBars.forEach(b => {
+            const destBar = destinationBars.find(ba => ba.id === b.id)
+            if (destBar) {
+                b.copyTo(destBar)
+            }
+
+        })
+    }
+
+    public cloneBars(sourceBars: GanttBar[], destinationBars: GanttBar[]) {
+        sourceBars.forEach(b => {
+            const newBar: GanttBar = new GanttBar
+            b.copyTo(newBar)
+            destinationBars.push(newBar)
+        })
+    }
+
+    public doUpdateBars = (nbars: GanttBar[]) => {
         //var ids = d3.selectAll<SVGGElement, GanttBar>("g.ganttBar").data().map(b => b.id)
         //nbars = ids.map(id => nbars.find(b => b.id === id)!)
 
-        var bars = d3.selectAll<SVGGElement, GanttBar>("g.ganttBar").data(nbars, (bar: GanttBar) => { return bar.id })
+        this.assignBars(nbars, this.bars)
+
+        var bars = d3.selectAll<SVGGElement, GanttBar>("g.ganttBar").data(this.bars, (bar: GanttBar) => bar.id)
 
         bars.attr("transform", (bar: GanttBar) => this.gTransform(bar, 0))
             .attr("id", (bar: GanttBar) => { return this.idToValidDomId(bar.id) })

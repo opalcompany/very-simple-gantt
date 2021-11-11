@@ -5,6 +5,18 @@ import { Gantt } from './Gantt'
 import { GanttRow } from './GanttRow';
 import { exit } from 'process';
 
+const dateTimeReviver = function (key: any, value: any) {
+    if (typeof value === 'string') {
+        console.log(value)
+        const n = Date.parse(value)
+        if (!Number.isNaN(n)) {
+            return new Date(n);
+        }
+    }
+    return value;
+}
+
+
 function randomDate(start: Date, end: Date) {
     const d = new Date(start.getTime() + Math.random() * (end.getTime() - start.getTime()));
     return d;
@@ -68,7 +80,7 @@ export const Cicciolo: React.FC = () => {
                 b.caption = "EX " + e + " ACT" + r;
                 b.draggable = data.actionId === 1;
                 b.resizeble = r === 0 || (r + e) % 2 === 0
-                b.data = JSON.stringify(data);
+                b.data = data;
                 bars.push(b);
             }
         }
@@ -90,66 +102,71 @@ export const Cicciolo: React.FC = () => {
             //return true;
         }
 
-        const onDrag = (bar: GanttBar, newStartTime: Date, bars: GanttBar[]): boolean => {
-            const draggedBarData = JSON.parse(bar.data) as GanttData;
-            console.log("dragging experiment " + draggedBarData.experimentId! + " action " + draggedBarData.actionId!);
-            const delta = newStartTime.valueOf() - bar.startTime.valueOf();
-            let returnValue = true;
+        const onDrag = (bar: GanttBar, newStartTime: Date, bars: GanttBar[]): void => {
+
+            const draggedBarData = bar.data as GanttData
+            console.log("dragging experiment " + draggedBarData.experimentId! + " action " + draggedBarData.actionId!)
+            const delta = newStartTime.valueOf() - bar.startTime.valueOf()
+
+            const ok = bars.every(b => {
+                const bd = b.data as GanttData
+                if ((bd.experimentId! === draggedBarData.experimentId!) && (bd.actionId! > draggedBarData.actionId!)) {
+                    const tmpEndTime = new Date(b.endTime.valueOf() + delta)
+                    return (!(tmpEndTime > endDate))
+                } else {
+                    return true
+                }
+
+            });
+
+            if (!ok) {
+                return
+            }
 
             bars.forEach(b => {
-                const bd = JSON.parse(b.data) as GanttData;
-                if ((bd.experimentId! === draggedBarData.experimentId!) && (bd.actionId! > draggedBarData.actionId!)) {
-                    const tmpEndTime = new Date(b.endTime.valueOf() + delta);
-                    if (tmpEndTime > endDate) {
-                        console.log("touched right limit!")
-                        returnValue = false;
-                    }
+                const bd = b.data as GanttData
+                if ((bd.experimentId! === draggedBarData.experimentId!) && (bd.actionId! >= draggedBarData.actionId!)) {
+                    b.startTime = new Date(b.startTime.valueOf() + delta)
+                    b.endTime = new Date(b.endTime.valueOf() + delta)
                 }
             });
 
-            if (returnValue === true) {
-                bars.forEach(b => {
-                    const bd = JSON.parse(b.data) as GanttData;
-                    if ((bd.experimentId! === draggedBarData.experimentId!) && (bd.actionId! > draggedBarData.actionId!)) {
-                        b.startTime = new Date(b.startTime.valueOf() + delta);
-                        b.endTime = new Date(b.endTime.valueOf() + delta);
-                    }
-                });
+            gantt.doUpdateBars(bars)
 
-            }
-            console.log("returnValue:" + returnValue);
-            return returnValue;
+
+            //return true;
         }
 
-        const onResize = (resizedBar: GanttBar, newEndTime: Date, bars: GanttBar[]): boolean => {
-            let returnValue = true;
-            const resizedBarData = JSON.parse(resizedBar.data) as GanttData;
-            console.log("resizing experiment " + resizedBarData.experimentId! + " action " + resizedBarData.actionId!);
-            const newDuration = newEndTime.valueOf() - resizedBar.startTime.valueOf();            
+        const onResize = (resizedBar: GanttBar, newEndTime: Date, bars: GanttBar[]): void => {
+            //const newBars = JSON.parse(JSON.stringify(bars), dateTimeReviver) as GanttBar[]
+
+            const resizedBarData = resizedBar.data as GanttData
+            console.log("resizing experiment " + resizedBarData.experimentId! + " action " + resizedBarData.actionId!)
+            const newDuration = newEndTime.valueOf() - resizedBar.startTime.valueOf()
             if ((newDuration > (resizedBarData.originalDurationInMillis * 1.40)) || (newDuration < (resizedBarData.originalDurationInMillis * 0.60))) {
-                returnValue = false;                
+                return
             } else {
-                const delta = newEndTime.valueOf() - resizedBar.endTime.valueOf();                
+                const delta = newEndTime.valueOf() - resizedBar.endTime.valueOf()
                 bars.forEach(b => {
-                    const bd = JSON.parse(b.data) as GanttData;
-                    if ((bd.experimentId! === resizedBarData.experimentId!) && (bd.actionId! > resizedBarData.actionId!)) {
-                        b.startTime = new Date(b.startTime.valueOf() + delta);
-                        b.endTime = new Date(b.endTime.valueOf() + delta);
+                    const bd = b.data as GanttData
+                    if ((bd.experimentId! === resizedBarData.experimentId!) && (bd.actionId! >= resizedBarData.actionId!)) {
+                        b.startTime = new Date(b.startTime.valueOf() + delta)
+                        b.endTime = new Date(b.endTime.valueOf() + delta)
                     }
-                })                
+                })
+                gantt.doUpdateBars(bars)
             }
-            return returnValue;
         }
 
-        gantt.onEndDrag = onEndDrag;
-        gantt.onDrag = onDrag;
-        gantt.onResize = onResize;
+        gantt.onEndDrag = onEndDrag
+        gantt.onDrag = onDrag
+        gantt.onResize = onResize
 
         const updateChart = () => {
-            gantt.loadBars();
+            gantt.loadBars()
         }
 
-        updateChart();
+        updateChart()
     })
 
     return <div id="cicciolo" ref={d3Container} />
