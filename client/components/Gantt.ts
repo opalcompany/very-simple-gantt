@@ -122,10 +122,23 @@ export class Gantt {
                 newEndTime = bar.startTime;
                 newEndTime.setSeconds(newEndTime.getSeconds() + 1);
             }
-            let newBars = this.bars 
+            let newBars = this.bars
 
-            bar.endTime = newEndTime
-            this.doUpdateBars(newBars);
+            if (this.onResize! != undefined) {
+                const doIt = this.onResize!(bar, newEndTime, newBars);
+                console.log("success " + doIt);
+                if (doIt === true) {
+                    bar.endTime = newEndTime
+                    this.doUpdateBars(newBars);
+                }
+                else {
+                    console.log("abort dragging!");
+                }
+            } else {
+                bar.endTime = newEndTime
+                this.doUpdateBars(newBars);
+            }
+
         }
     }
 
@@ -180,7 +193,7 @@ export class Gantt {
             let newBars = this.bars
 
             if (this.onDrag! != undefined) {
-                const doIt = this.onDrag!(bar, newStartTime, newEndTime, newBars);
+                const doIt = this.onDrag!(bar, newStartTime, newBars);
                 console.log("success " + doIt);
                 if (doIt === true) {
                     bar.startTime = newStartTime;
