@@ -38,75 +38,72 @@ export class Gantt {
     public startDate: Date;
     private endDate: Date;
     // appearance
-    public rowHeight: number = 100;
-    public width: number = 2000;
-    public horizontalLinesColor: string = "#cbcdd6";
-    public resizeAnchorWidth: number = 3;
+    public rowHeight: number = 100
+    public width: number = 2000
+    public horizontalLinesColor: string = "#cbcdd6"
+    public resizeAnchorWidth: number = 3
     // drag'n'drop
-    private dragging: boolean;
-    private startXOfDragEvent?: number;
-    private draggedBarStartX?: number;
-    private draggedBarEndX?: number;
-    private draggedBarId?: string;
-    private draggedBarY?: number;
+    private dragging: boolean
+    private startXOfDragEvent?: number
+    private draggedBarStartX?: number
+    private draggedBarEndX?: number
+    private draggedBarId?: string
+    private draggedBarY?: number
     // resizing
-    private resizing: boolean;
-    private startXOfResizeEvent?: number;
+    private resizing: boolean
+    private startXOfResizeEvent?: number
     //private resizingBarStartX?: number;
-    private resizingBarEndX?: number;
+    private resizingBarEndX?: number
     //private resizingBarY?: number;
 
-    public onStartDrag?: onGanttStartDragBarEvent;
-    public onDrag?: onGanttDragBarEvent;
-    public onEndDrag?: onGanttEndDragBarEvent;
+    public onStartDrag?: onGanttStartDragBarEvent
+    public onDrag?: onGanttDragBarEvent
+    public onEndDrag?: onGanttEndDragBarEvent
 
-    public onStartResize?: onGanttStartResizeBarEvent;
-    public onResize?: onGanttResizeBarEvent;
-    public onEndResize?: OnGanttEndResizeBarEvent;
+    public onStartResize?: onGanttStartResizeBarEvent
+    public onResize?: onGanttResizeBarEvent
+    public onEndResize?: OnGanttEndResizeBarEvent
 
     container: HTMLElement;
 
     private height(): number {
-        return (this.rowHeight * this.rows.length) + this.timebarHeight;
+        return (this.rowHeight * this.rows.length) + this.timebarHeight
     }
 
     private convertGanttXToContainerX(ganttXCoord: number): number {
-        return ganttXCoord + this.headersWidth;
+        return ganttXCoord + this.headersWidth
     }
 
     private calculateBarX(bar: GanttBar, x: number): number {
-        return this.convertGanttXToContainerX(x + this.scale(bar.startTime));
+        return this.convertGanttXToContainerX(x + this.scale(bar.startTime))
     }
 
     private calculateBarY(bar: GanttBar): number {
-        return (bar.row * this.rowHeight) + this.timebarHeight + ((this.rowHeight - bar.height) / 2);
+        return (bar.row * this.rowHeight) + this.timebarHeight + ((this.rowHeight - bar.height) / 2)
     }
 
     private gTransform = (bar: GanttBar, x: number) => {
         return `translate(${this.calculateBarX(bar, x)}, ${this.calculateBarY(bar)})`
     }
 
-    private gXTransform = (bar: GanttBar, x: number, y: number) => {
-        return `translate(${this.convertGanttXToContainerX(x + this.scale(bar.startTime))}, ${y})`
-    }
-
     private idToValidDomId = (id: String) => {
-        //return '[id="' + id + '"]'
+        //alternative is: return '[id="' + id + '"]'
         return "g" + id.replace(/[ ]/g, "_")
     }
-
 
     private gOnStartResize(el: any, event: any, bar: GanttBar): any {
         console.log("start resize: " + bar.id + " " + bar.resizeble);
         let doIt = bar.resizeble;
-        if (this.onStartResize! != undefined) {
-            doIt = doIt && this.onStartResize(bar);
+
+        if (!bar.resizeble) return
+
+        if (this.onStartResize) {
+            if (! this.onStartResize(bar)) return
         }
-        if (!doIt)
-            return
-        this.startXOfResizeEvent = d3.pointer(event, el)[0];
-        this.resizingBarEndX = this.scale(bar.endTime);
-        this.resizing = true;
+
+        this.startXOfResizeEvent = d3.pointer(event, el)[0]
+        this.resizingBarEndX = this.scale(bar.endTime)
+        this.resizing = true
 
         const pn = d3.select<any, any>("#" + this.idToValidDomId(bar.id));
         pn.raise().style("opacity", bar.opacity / 2)
@@ -123,7 +120,7 @@ export class Gantt {
                 newEndTime.setSeconds(newEndTime.getSeconds() + 1);
             }
             if (this.onResize) {
-                const clonedBars: GanttBar[] = [];
+                const clonedBars: GanttBar[] = []
                 this.cloneBars(this.bars, clonedBars)
                 this.onResize(bar, newEndTime, clonedBars);
                 this.assignBars(clonedBars, this.bars)
@@ -139,34 +136,30 @@ export class Gantt {
         const pn = d3.select<any, any>("#" + this.idToValidDomId(bar.id));
         pn.style("opacity", null)
         this.resizing = false;
-        if (this.onEndResize != undefined) {
-            this.onEndResize(bar, this.bars);
-            //this.doUpdateBars(newBars);
+        if (this.onEndResize) {
+            const clonedBars: GanttBar[] = []
+            this.cloneBars(this.bars, clonedBars)
+            this.onEndResize(bar, clonedBars)
         }
 
     }
 
     private gOnStartDrag(el: Element, event: any, bar: GanttBar): any {
-        console.log("try to drag bar id " + bar.id)
-        //console.log("current bar starts at " + this.draggedBarStartX + ' and ends at ' + this.draggedBarEndX);
-        let doIt = bar.draggable;
-        if (this.onStartDrag! != undefined) {
-            doIt = doIt && this.onStartDrag!(bar);
-        }
-        if (doIt) {
-            this.startXOfDragEvent = event.x;
-            this.draggedBarStartX = this.scale(bar.startTime);
-            this.draggedBarEndX = this.scale(bar.endTime);
-            this.draggedBarId = bar.id;
-            this.draggedBarY = this.calculateBarY(bar);
-            this.dragging = true;
-            d3.select("#" + this.idToValidDomId(this.draggedBarId!))
-                .style("opacity", bar.opacity / 2)
-                .attr("cursor", "grabbing")
-                .raise()
-        } else {
-            this.dragging = false;
-        }
+        this.dragging = false
+        if (!bar.draggable) return
+        if (this.onStartDrag) {
+            if (! this.onStartDrag(bar)) return
+        }        
+        this.startXOfDragEvent = event.x;
+        this.draggedBarStartX = this.scale(bar.startTime);
+        this.draggedBarEndX = this.scale(bar.endTime);
+        this.draggedBarId = bar.id;
+        this.draggedBarY = this.calculateBarY(bar);
+        this.dragging = true;
+        d3.select("#" + this.idToValidDomId(this.draggedBarId!))
+            .style("opacity", bar.opacity / 2)
+            .attr("cursor", "grabbing")
+            .raise()
     }
 
     private gOnDrag(el: Element, event: any, bar: GanttBar) {
@@ -194,22 +187,11 @@ export class Gantt {
 
                 const doIt = this.onDrag!(bar, newStartTime, clonedBars)
                 this.assignBars(clonedBars, this.bars)
-                //console.log("success " + doIt);
-                //if (doIt === true) {
-                //    //bar.startTime = newStartTime;
-                //    //bar.endTime = newEndTime;
-                //    this.doUpdateBars(newBars);
-                //}
-                //else {
-                //    console.log("abort dragging!");
-                //}
             } else {
                 bar.startTime = newStartTime;
                 bar.endTime = newEndTime;
                 this.doUpdateBars(this.bars);
             }
-
-
         }
     }
 

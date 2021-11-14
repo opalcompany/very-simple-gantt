@@ -149,9 +149,10 @@ export const Cicciolo: React.FC = () => {
                 const delta = newEndTime.valueOf() - resizedBar.endTime.valueOf()
                 bars.forEach(b => {
                     const bd = b.data as GanttData
-                    if ((bd.experimentId! === resizedBarData.experimentId!) && (bd.actionId! >= resizedBarData.actionId!)) {
-                        b.startTime = new Date(b.startTime.valueOf() + delta)
-                        b.endTime = new Date(b.endTime.valueOf() + delta)
+                    if (bd.experimentId! === resizedBarData.experimentId!) {
+                        if (bd.actionId! >= resizedBarData.actionId!) b.endTime = new Date(b.endTime.valueOf() + delta)
+                        if (bd.actionId! > resizedBarData.actionId!) b.startTime = new Date(b.startTime.valueOf() + delta)
+
                     }
                 })
                 gantt.doUpdateBars(bars)
