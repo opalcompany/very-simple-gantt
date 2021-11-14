@@ -93,12 +93,11 @@ export class Gantt {
 
     private gOnStartResize(el: any, event: any, bar: GanttBar): any {
         console.log("start resize: " + bar.id + " " + bar.resizeble);
-        let doIt = bar.resizeble;
 
         if (!bar.resizeble) return
 
         if (this.onStartResize) {
-            if (! this.onStartResize(bar)) return
+            if (!this.onStartResize(bar)) return
         }
 
         this.startXOfResizeEvent = d3.pointer(event, el)[0]
@@ -148,8 +147,8 @@ export class Gantt {
         this.dragging = false
         if (!bar.draggable) return
         if (this.onStartDrag) {
-            if (! this.onStartDrag(bar)) return
-        }        
+            if (!this.onStartDrag(bar)) return
+        }
         this.startXOfDragEvent = event.x;
         this.draggedBarStartX = this.scale(bar.startTime);
         this.draggedBarEndX = this.scale(bar.endTime);
@@ -181,11 +180,10 @@ export class Gantt {
                 newEndTime = this.endDate;
             }
 
-            if (this.onDrag! != undefined) {
+            if (this.onDrag) {
                 const clonedBars: GanttBar[] = [];
                 this.cloneBars(this.bars, clonedBars)
-
-                const doIt = this.onDrag!(bar, newStartTime, clonedBars)
+                this.onDrag(bar, newStartTime, clonedBars)
                 this.assignBars(clonedBars, this.bars)
             } else {
                 bar.startTime = newStartTime;
@@ -197,7 +195,7 @@ export class Gantt {
 
     private gOnEndDrag(el: Element, event: any, bar: GanttBar): any {
         if (this.dragging) {
-            if (this.onEndDrag != undefined) {
+            if (this.onEndDrag) {
                 this.onEndDrag(bar, this.bars)
             }
             d3.select<any, GanttBar>("#" + this.idToValidDomId(this.draggedBarId!))
