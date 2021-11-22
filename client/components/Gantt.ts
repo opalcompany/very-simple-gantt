@@ -105,7 +105,8 @@ export class Gantt {
         this.resizing = true
 
         const pn = d3.select<any, any>("#" + this.idToValidDomId(bar.id));
-        pn.raise().style("opacity", bar.opacity / 2)
+        //pn.raise().style("opacity", bar.opacity / 2)        
+        pn.raise().classed("ganttBarResizing", true)
     }
 
     private gOnResize(el: any, event: any, bar: GanttBar): any {
@@ -133,7 +134,8 @@ export class Gantt {
 
     private gOnEndResize(el: any, event: any, bar: GanttBar): any {
         const pn = d3.select<any, any>("#" + this.idToValidDomId(bar.id));
-        pn.style("opacity", null)
+        //pn.style("opacity", null)
+        pn.classed("ganttBarResizing", false)
         this.resizing = false;
         if (this.onEndResize) {
             const clonedBars: GanttBar[] = []
@@ -156,7 +158,8 @@ export class Gantt {
         this.draggedBarY = this.calculateBarY(bar);
         this.dragging = true;
         d3.select("#" + this.idToValidDomId(this.draggedBarId!))
-            .style("opacity", bar.opacity / 2)
+            .classed("ganttBarDragging", true)
+            //.style("opacity", bar.opacity / 2)
             .attr("cursor", "grabbing")
             .raise()
     }
@@ -199,7 +202,8 @@ export class Gantt {
                 this.onEndDrag(bar, this.bars)
             }
             d3.select<any, GanttBar>("#" + this.idToValidDomId(this.draggedBarId!))
-                .style("opacity", null) //bar.opacity)
+                .classed("ganttBarDragging", false)
+                //.style("opacity", null) //bar.opacity)
                 .attr("cursor", this.cursorForBar)
         }
         this.dragging = false;
