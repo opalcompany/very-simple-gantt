@@ -293,7 +293,7 @@ export class Gantt<T> {
 
         const headerSvg = svg
             .attr("class", "header")
-            .attr("width", this.width)
+            .attr("width", this.headersWidth)
             .attr("height", this.height())
             .style("position", "absolute")
             .style("pointer-events", "none")
