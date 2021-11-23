@@ -20,11 +20,11 @@
 import * as d3 from 'd3';
 import * as d3drag from 'd3-drag';
 import { GanttBar } from "./GanttBar"
-import { onGanttDragBarEvent, onGanttEndDragBarEvent, OnGanttEndResizeBarEvent, onGanttResizeBarEvent, onGanttStartDragBarEvent, onGanttStartResizeBarEvent } from './GanttEvents';
+import { OnGanttDragBarEvent, OnGanttEndDragBarEvent, OnGanttEndResizeBarEvent, OnGanttResizeBarEvent, OnGanttStartDragBarEvent, OnGanttStartResizeBarEvent } from './GanttEvents';
 import { GanttRow } from './GanttRow';
 //import { Margins } from './Margins';
 
-export class Gantt {
+export class Gantt<T> {
     // scales
     private scale: d3.ScaleTime<number, number, never>;
     private xAxis: d3.Axis<Date>;
@@ -32,7 +32,7 @@ export class Gantt {
     private timebarHeight: number = 60;
     private headersWidth: number = 100;
     // data
-    private bars: GanttBar[];
+    private bars: GanttBar<T>[];
     private rows: GanttRow[];
     // time range
     public startDate: Date;
@@ -56,13 +56,13 @@ export class Gantt {
     private resizingBarEndX?: number
     //private resizingBarY?: number;
 
-    public onStartDrag?: onGanttStartDragBarEvent
-    public onDrag?: onGanttDragBarEvent
-    public onEndDrag?: onGanttEndDragBarEvent
+    public onStartDrag?: OnGanttStartDragBarEvent<T>;
+    public onDrag?: OnGanttDragBarEvent<T>;
+    public onEndDrag?: OnGanttEndDragBarEvent<T>;
 
-    public onStartResize?: onGanttStartResizeBarEvent
-    public onResize?: onGanttResizeBarEvent
-    public onEndResize?: OnGanttEndResizeBarEvent
+    public onStartResize?: OnGanttStartResizeBarEvent<T>;
+    public onResize?: OnGanttResizeBarEvent<T>;
+    public onEndResize?: OnGanttEndResizeBarEvent<T>;
 
     container: HTMLElement;
 
@@ -74,15 +74,15 @@ export class Gantt {
         return ganttXCoord + this.headersWidth
     }
 
-    private calculateBarX(bar: GanttBar, x: number): number {
-        return this.convertGanttXToContainerX(x + this.scale(bar.startTime))
+    private calculateBarX(bar: GanttBar<T>, x: number): number {
+        return this.convertGanttXToContainerX(x + this.scale(bar.startTime));
     }
 
-    private calculateBarY(bar: GanttBar): number {
-        return (bar.row * this.rowHeight) + this.timebarHeight + ((this.rowHeight - bar.height) / 2)
+    private calculateBarY(bar: GanttBar<T>): number {
+        return (bar.row * this.rowHeight) + this.timebarHeight + ((this.rowHeight - bar.height) / 2);
     }
 
-    private gTransform = (bar: GanttBar, x: number) => {
+    private gTransform = (bar: GanttBar<T>, x: number) => {
         return `translate(${this.calculateBarX(bar, x)}, ${this.calculateBarY(bar)})`
     }
 
@@ -91,7 +91,8 @@ export class Gantt {
         return "g" + id.replace(/[ ]/g, "_")
     }
 
-    private gOnStartResize(el: any, event: any, bar: GanttBar): any {
+
+    private gOnStartResize(el: any, event: any, bar: GanttBar<T>): any {
         console.log("start resize: " + bar.id + " " + bar.resizeble);
 
         if (!bar.resizeble) return
@@ -109,7 +110,7 @@ export class Gantt {
         pn.raise().classed("ganttBarResizing", true)
     }
 
-    private gOnResize(el: any, event: any, bar: GanttBar): any {
+    private gOnResize(el: any, event: any, bar: GanttBar<T>): any {
         if (this.resizing) {
             const correctX = d3.pointer(event, el)[0]
             const delta = correctX - this.startXOfResizeEvent!;
@@ -120,7 +121,7 @@ export class Gantt {
                 newEndTime.setSeconds(newEndTime.getSeconds() + 1);
             }
             if (this.onResize) {
-                const clonedBars: GanttBar[] = []
+                const clonedBars: GanttBar<T>[] = [];
                 this.cloneBars(this.bars, clonedBars)
                 this.onResize(bar, newEndTime, clonedBars);
                 this.assignBars(clonedBars, this.bars)
@@ -132,20 +133,20 @@ export class Gantt {
         }
     }
 
-    private gOnEndResize(el: any, event: any, bar: GanttBar): any {
+    private gOnEndResize(el: any, event: any, bar: GanttBar<T>): any {
         const pn = d3.select<any, any>("#" + this.idToValidDomId(bar.id));
         //pn.style("opacity", null)
         pn.classed("ganttBarResizing", false)
         this.resizing = false;
         if (this.onEndResize) {
-            const clonedBars: GanttBar[] = []
+            const clonedBars: GanttBar<T>[] = []
             this.cloneBars(this.bars, clonedBars)
             this.onEndResize(bar, clonedBars)
         }
 
     }
 
-    private gOnStartDrag(el: Element, event: any, bar: GanttBar): any {
+    private gOnStartDrag(el: Element, event: any, bar: GanttBar<T>): any {
         this.dragging = false
         if (!bar.draggable) return
         if (this.onStartDrag) {
@@ -164,7 +165,7 @@ export class Gantt {
             .raise()
     }
 
-    private gOnDrag(el: Element, event: any, bar: GanttBar) {
+    private gOnDrag(el: Element, event: any, bar: GanttBar<T>) {
         if (this.dragging) {
             const delta = event.x - this.startXOfDragEvent!;
             let newStartTime = new Date(this.scale.invert(this.draggedBarStartX! + delta));
@@ -184,7 +185,7 @@ export class Gantt {
             }
 
             if (this.onDrag) {
-                const clonedBars: GanttBar[] = [];
+                const clonedBars: GanttBar<T>[] = [];
                 this.cloneBars(this.bars, clonedBars)
                 this.onDrag(bar, newStartTime, clonedBars)
                 this.assignBars(clonedBars, this.bars)
@@ -196,12 +197,12 @@ export class Gantt {
         }
     }
 
-    private gOnEndDrag(el: Element, event: any, bar: GanttBar): any {
+    private gOnEndDrag(el: Element, event: any, bar: GanttBar<T>): any {
         if (this.dragging) {
             if (this.onEndDrag) {
                 this.onEndDrag(bar, this.bars)
             }
-            d3.select<any, GanttBar>("#" + this.idToValidDomId(this.draggedBarId!))
+            d3.select<any, GanttBar<T>>("#" + this.idToValidDomId(this.draggedBarId!))
                 .classed("ganttBarDragging", false)
                 //.style("opacity", null) //bar.opacity)
                 .attr("cursor", this.cursorForBar)
@@ -209,7 +210,7 @@ export class Gantt {
         this.dragging = false;
     }
 
-    private barWidth = (bar: GanttBar) => {
+    private barWidth = (bar: GanttBar<T>) => {
         return this.scale(bar.endTime) - this.scale(bar.startTime)
     }
 
@@ -220,14 +221,14 @@ export class Gantt {
 
         const svgElementBars = pannableSvg.append("g")
             .attr("class", "ganttBars")
-            .selectAll<SVGGElement, GanttBar>("g")
-            .data(this.bars, (bar: GanttBar) => bar.id)
+            .selectAll<SVGGElement, GanttBar<T>>("g")
+            .data(this.bars, (bar: GanttBar<T>) => bar.id)
             .enter()
             .append("g")
-            .on("click", (e: { target: any; }, bar: GanttBar) => {
+            .on("click", (e: { target: any; }, bar: GanttBar<T>) => {
                 d3.select("#" + this.idToValidDomId(bar.id)).lower()
             })
-            .call(d3drag.drag<any, GanttBar>()
+            .call(d3drag.drag<any, GanttBar<T>>()
                 // "referenceToGantt" refers to the gantt instance ("this" now), "this" is a group element (rect + text) in the function context, 
                 // event is the d3 event
                 // d is the datum aka GanttBar
@@ -242,16 +243,16 @@ export class Gantt {
         bars.append("rect").attr("class", "ganttBarRect")
         bars.append("text").attr("class", "ganttBarCaption")
 
-        bars.filter((bar: GanttBar) => bar.draggable)
+        bars.filter((bar: GanttBar<T>) => bar.draggable)
             .append("rect")
             .attr("class", "ganttBarDraggableIndicator")
 
 
-        bars.filter((bar: GanttBar) => bar.resizeble)
+        bars.filter((bar: GanttBar<T>) => bar.resizeble)
             .append("rect")
             .attr("class", "ganttBarHandle")
             .attr("width", this.resizeAnchorWidth)
-            .call(d3drag.drag<any, GanttBar>()
+            .call(d3drag.drag<any, GanttBar<T>>()
                 // "referenceToGantt" refers to the gantt instance ("this" now), "this" is a group element (rect + text) in the function context, 
                 // event is the d3 event
                 // d is the datum aka GanttBar
@@ -266,7 +267,7 @@ export class Gantt {
 
     }
 
-    constructor(container: HTMLElement, startDate: Date, endDate: Date, rows: GanttRow[], bars: GanttBar[]) {
+    constructor(container: HTMLElement, startDate: Date, endDate: Date, rows: GanttRow[], bars: GanttBar<T>[]) {
         this.rows = rows
         this.bars = bars
         this.startDate = startDate
@@ -356,7 +357,7 @@ export class Gantt {
                 .attr("y2", this.timebarHeight + (i * this.rowHeight));
         }
         pannableSvg.on("click", (e: { target: any; }) => {
-            console.log("clic! " + d3.select<any, GanttBar>(e.target).datum().id)
+            console.log("clic! " + d3.select<any, GanttBar<T>>(e.target).datum().id)
         });
 
         //yield parent.node();
@@ -366,74 +367,73 @@ export class Gantt {
 
     }
 
-    private cursorForBar = (bar: GanttBar) => bar.draggable ? "grab" : "default";
+    private cursorForBar = (bar: GanttBar<T>) => bar.draggable ? "grab" : "default";
 
-    public assignBars(sourceBars: GanttBar[], destinationBars: GanttBar[]) {
+    public assignBars(sourceBars: GanttBar<T>[], destinationBars: GanttBar<T>[]) {
         sourceBars.forEach(b => {
             const destBar = destinationBars.find(ba => ba.id === b.id)
             if (destBar) {
-                b.copyTo(destBar)
+                copyBar(b, destBar)
             }
 
         })
     }
 
-    public cloneBars(sourceBars: GanttBar[], destinationBars: GanttBar[]) {
+    public cloneBars(sourceBars: GanttBar<T>[], destinationBars: GanttBar<T>[]) {
         sourceBars.forEach(b => {
-            const newBar: GanttBar = new GanttBar
-            b.copyTo(newBar)
+            const newBar: GanttBar<T> = { ...b }
             destinationBars.push(newBar)
         })
     }
 
-    public doUpdateBars = (nbars: GanttBar[]) => {
+    public doUpdateBars = (nbars: GanttBar<T>[]) => {
         //var ids = d3.selectAll<SVGGElement, GanttBar>("g.ganttBar").data().map(b => b.id)
         //nbars = ids.map(id => nbars.find(b => b.id === id)!)
 
         this.assignBars(nbars, this.bars)
 
-        var bars = d3.selectAll<SVGGElement, GanttBar>("g.ganttBar").data(this.bars, (bar: GanttBar) => bar.id)
+        var bars = d3.selectAll<SVGGElement, GanttBar<T>>("g.ganttBar").data(this.bars, (bar: GanttBar<T>) => bar.id)
 
-        bars.attr("transform", (bar: GanttBar) => this.gTransform(bar, 0))
-            .attr("id", (bar: GanttBar) => { return this.idToValidDomId(bar.id) })
+        bars.attr("transform", (bar: GanttBar<T>) => this.gTransform(bar, 0))
+            .attr("id", (bar: GanttBar<T>) => { return this.idToValidDomId(bar.id) })
 
         const roundness = 0.08;
         bars.selectChild(".ganttBarRect")
-            .attr("rx", (bar: GanttBar) => bar.height * roundness)
-            .attr("ry", (bar: GanttBar) => bar.height * roundness)
+            .attr("rx", (bar: GanttBar<T>) => bar.height * roundness)
+            .attr("ry", (bar: GanttBar<T>) => bar.height * roundness)
             .attr("width", this.barWidth)
-            .attr("height", (bar: GanttBar) => bar.height)
-            .style("opacity", (bar: GanttBar) => bar.opacity)
-            .attr("fill", (bar: GanttBar) => bar.barColor)
+            .attr("height", (bar: GanttBar<T>) => bar.height)
+            .style("opacity", (bar: GanttBar<T>) => bar.opacity)
+            .attr("fill", (bar: GanttBar<T>) => bar.barColor)
 
 
         bars.selectChild(".ganttBarCaption")
-            .attr("x", (bar: GanttBar) => this.barWidth(bar) / 2)
-            .attr("y", (bar: GanttBar) => this.rowHeight / 3)
+            .attr("x", (bar: GanttBar<T>) => this.barWidth(bar) / 2)
+            .attr("y", (bar: GanttBar<T>) => this.rowHeight / 3)
             .attr("text-anchor", "middle")
             .attr("dominant-baseline", "middle")
             .style("font-family", "Mono")
             .style("font-size", "30px")
             .attr("cursor", "inherited")
-            .text(function (bar: GanttBar) { return bar.caption; });
+            .text(function (bar: GanttBar<T>) { return bar.caption; });
 
         bars.selectChild(".ganttBarHandle")
-            .attr("x", (bar: GanttBar) => this.barWidth(bar) - this.resizeAnchorWidth)
-            .attr("y", (bar: GanttBar) => (bar.height - (bar.height / 3)) / 2)
-            .attr("height", (bar: GanttBar) => bar.height / 3)
+            .attr("x", (bar: GanttBar<T>) => this.barWidth(bar) - this.resizeAnchorWidth)
+            .attr("y", (bar: GanttBar<T>) => (bar.height - (bar.height / 3)) / 2)
+            .attr("height", (bar: GanttBar<T>) => bar.height / 3)
             .attr("cursor", "e-resize")
-            .style("opacity", (bar: GanttBar) => bar.opacity)
+            .style("opacity", (bar: GanttBar<T>) => bar.opacity)
 
         bars.selectChild(".ganttBarDraggableIndicator")
-            .attr("width", (bar: GanttBar) => bar.height * roundness)
-            .attr("height", (bar: GanttBar) => bar.height * (1 - 2 * roundness))
-            .attr("rx", (bar: GanttBar) => bar.height * roundness / 2)
-            .attr("ry", (bar: GanttBar) => bar.height * roundness / 2)
-            .attr("fill", (bar: GanttBar) => "black")
-            .attr("x", (bar: GanttBar) => bar.height * roundness)
-            .attr("y", (bar: GanttBar) => bar.height * roundness)
-            .style("opacity", (bar: GanttBar) => .2)
-            .attr("visibility", (bar: GanttBar) => this.barWidth(bar) > 3 * bar.height * roundness ? "visible" : "hidden")
+            .attr("width", (bar: GanttBar<T>) => bar.height * roundness)
+            .attr("height", (bar: GanttBar<T>) => bar.height * (1 - 2 * roundness))
+            .attr("rx", (bar: GanttBar<T>) => bar.height * roundness / 2)
+            .attr("ry", (bar: GanttBar<T>) => bar.height * roundness / 2)
+            .attr("fill", (bar: GanttBar<T>) => "black")
+            .attr("x", (bar: GanttBar<T>) => bar.height * roundness)
+            .attr("y", (bar: GanttBar<T>) => bar.height * roundness)
+            .style("opacity", (bar: GanttBar<T>) => .2)
+            .attr("visibility", (bar: GanttBar<T>) => this.barWidth(bar) > 3 * bar.height * roundness ? "visible" : "hidden")
     }
 
     /**
@@ -443,3 +443,15 @@ export class Gantt {
 
     }
 }
+
+function copyBar<T>(src: GanttBar<T>, dest: GanttBar<T>) {
+    dest.id = src.id;
+    dest.height = src.height;
+    dest.startTime = src.startTime;
+    dest.endTime = src.endTime;
+    dest.barColor = src.barColor;
+    dest.caption = src.caption;
+    dest.opacity = src.opacity;
+    dest.data = src.data;
+}
+

@@ -1,12 +1,12 @@
 import { GanttBar } from "./GanttBar";
 
 // must return false if dragging is not allowed for the bar, true if allowed
-export interface onGanttStartDragBarEvent { (bar: GanttBar): boolean }
-export interface onGanttDragBarEvent { (bar: GanttBar, newStartTime: Date, bars: GanttBar[]): void }
-export interface onGanttEndDragBarEvent { (bar: GanttBar, bars: GanttBar[]): void }
+export interface OnGanttStartDragBarEvent<T>{ (bar: GanttBar<T>): boolean }
+export interface OnGanttDragBarEvent<T> { (bar: GanttBar<T>, newStartTime: Date, bars: GanttBar<T>[]): void }
+export interface OnGanttEndDragBarEvent<T> { (bar: GanttBar<T>, bars: GanttBar<T>[]): void }
 
 // must return false if resizing is not allowed for the bar, true if allowed
-export interface onGanttStartResizeBarEvent { (resizedBar: GanttBar): boolean }
+export interface OnGanttStartResizeBarEvent<T> { (resizedBar: GanttBar<T>): boolean }
 // must return false if resizing is not allowed for the bar, true if allowed
-export interface onGanttResizeBarEvent { (resizedBar: GanttBar, newEndTime: Date, bars: GanttBar[]): void }
-export interface OnGanttEndResizeBarEvent { (resizedBar: GanttBar, bars: GanttBar[]): void }
+export interface OnGanttResizeBarEvent<T> { (resizedBar: GanttBar<T>, newEndTime: Date, bars: GanttBar<T>[]): void }
+export interface OnGanttEndResizeBarEvent<T> { (resizedBar: GanttBar<T>, bars: GanttBar<T>[]): void }

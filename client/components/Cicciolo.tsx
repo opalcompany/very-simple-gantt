@@ -45,14 +45,17 @@ export const Cicciolo: React.FC = () => {
     /* The useEffect Hook is for running side effects outside of React,
        for instance inserting elements into the DOM using D3 */
     useEffect(() => {
-        const bars: GanttBar[] = [];
+        const bars: GanttBar<GanttData>[] = [];
         const rows: GanttRow[] = [];
         const startDate = new Date(2021, 9, 1)
 
         for (let i = 0; i < 6; i++) {
-            let r = new GanttRow;
-            r.row = i;
-            r.caption = 'CAZZILLATORE ' + i;
+            let r: GanttRow = {
+                row: i,
+                caption: 'CAZZILLATORE ' + i,
+                borderColor: "#006600",
+                color: "#00cc00",
+            };
             rows.push(r);
         }
 
@@ -63,31 +66,34 @@ export const Cicciolo: React.FC = () => {
             let dateLimit = expStart
 
             for (let r = 0; r < 6; r++) {
-                let b = new GanttBar;
-                b.row = r;
                 const data = new GanttData();
                 data.experimentId = e;
                 data.actionId = r + 1;
                 data.originalDurationInMillis = MILLIS_IN_DAY * Math.random() * 7;
-                b.startTime = dateLimit;//randomBarDate(dateLimit);
-                b.endTime = new Date(b.startTime.getTime() + data.originalDurationInMillis);
-                dateLimit = b.endTime//randomBarDate(b.endTime);
+                let b: GanttBar<GanttData> = {
+                    row: r,
+                    startTime: dateLimit,
+                    endTime: new Date(dateLimit.getTime() + data.originalDurationInMillis),
+                    height: 70,
+                    barColor: d3.interpolateRainbow(Math.random()),
+                    id: "EXP" + e + "AZZ" + r,
+                    caption: "EX " + e + " ACT" + r,
+                    draggable: data.actionId === 1,
+                    resizeble: r === 0 || (r + e) % 2 === 0,
+                    data: data,
+                    opacity: .5,
+                }
+                bars.push(b);
+
+                dateLimit = b.endTime
                 if (r === 0)
                     expStart = b.endTime
-                b.height = 70;
-                b.barColor = d3.interpolateRainbow(Math.random());
-                b.id = "EXP" + e + "AZZ" + r;
-                b.caption = "EX " + e + " ACT" + r;
-                b.draggable = data.actionId === 1;
-                b.resizeble = r === 0 || (r + e) % 2 === 0
-                b.data = data;
-                bars.push(b);
             }
         }
 
         const gantt = new Gantt(d3Container.current!, startDate, endDate, rows, bars);
 
-        const onEndDrag = (bar: GanttBar, bars: GanttBar[]): void => {
+        const onEndDrag = (bar: GanttBar<GanttData>, bars: GanttBar<GanttData>[]): void => {
             //return false;            
             //const d = JSON.parse(bar.data) as GanttData
             //const currentExperiment = d.experimentId;
@@ -102,14 +108,14 @@ export const Cicciolo: React.FC = () => {
             //return true;
         }
 
-        const onDrag = (bar: GanttBar, newStartTime: Date, bars: GanttBar[]): void => {
+        const onDrag = (bar: GanttBar<GanttData>, newStartTime: Date, bars: GanttBar<GanttData>[]): void => {
 
             const draggedBarData = bar.data as GanttData
             console.log("dragging experiment " + draggedBarData.experimentId! + " action " + draggedBarData.actionId!)
             const delta = newStartTime.valueOf() - bar.startTime.valueOf()
 
             const ok = bars.every(b => {
-                const bd = b.data as GanttData
+                const bd = b.data
                 if ((bd.experimentId! === draggedBarData.experimentId!) && (bd.actionId! > draggedBarData.actionId!)) {
                     const tmpEndTime = new Date(b.endTime.valueOf() + delta)
                     return (!(tmpEndTime > endDate))
@@ -137,22 +143,29 @@ export const Cicciolo: React.FC = () => {
             //return true;
         }
 
-        const onResize = (resizedBar: GanttBar, newEndTime: Date, bars: GanttBar[]): void => {
+        const onResize = (resizedBar: GanttBar<GanttData>, newEndTime: Date, bars: GanttBar<GanttData>[]): void => {
             //const newBars = JSON.parse(JSON.stringify(bars), dateTimeReviver) as GanttBar[]
 
             const resizedBarData = resizedBar.data as GanttData
             console.log("resizing experiment " + resizedBarData.experimentId! + " action " + resizedBarData.actionId!)
-            const newDuration = newEndTime.valueOf() - resizedBar.startTime.valueOf()
+            const newDuration = newEndTime.getTime() - resizedBar.startTime.getTime()
             if ((newDuration > (resizedBarData.originalDurationInMillis * 1.40)) || (newDuration < (resizedBarData.originalDurationInMillis * 0.60))) {
                 return
             } else {
-                const delta = newEndTime.valueOf() - resizedBar.endTime.valueOf()
-                bars.forEach(b => {
+                //resizedBar.endTime = newEndTime
+                var t = newEndTime
+                bars.sort((b1, b2) => b1.data.actionId! - b2.data.actionId!).forEach(b => {
                     const bd = b.data as GanttData
-                    if (bd.experimentId! === resizedBarData.experimentId!) {
-                        if (bd.actionId! >= resizedBarData.actionId!) b.endTime = new Date(b.endTime.valueOf() + delta)
-                        if (bd.actionId! > resizedBarData.actionId!) b.startTime = new Date(b.startTime.valueOf() + delta)
-
+                    if (bd.experimentId! !== resizedBarData.experimentId!) 
+                        return
+                    if ( bd.actionId! > resizedBarData.actionId!) {
+                        const barDuration = b.endTime.getTime() - b.startTime.getTime();
+                        b.startTime = t
+                        t = new Date(t.getTime() + barDuration)
+                        b.endTime = t
+                    }
+                    else if (bd.actionId! === resizedBarData.actionId!){
+                        b.endTime = newEndTime
                     }
                 })
                 gantt.doUpdateBars(bars)

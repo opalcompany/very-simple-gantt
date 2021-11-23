@@ -1,8 +1,9 @@
 {
-  "name": "frontend",
+  "name": "very-simple-gantt",
   "version": "1.0.0",
-  "description": "MS armonics frontend",
-  "main": "index.js",
+  "description": "Gantt Project",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "dependencies": {
     "axios": "^0.21.4",
     "bootstrap": "^5.1.0",
@@ -37,7 +38,8 @@
   },
   "scripts": {
     "build:server": "webpack --config webpack.config.server.js",
-    "build:client": "webpack --config webpack.config.client.js",
+    "build:client": "webpack --config webpack.config.lib.js",
+    "build:lib": "tsc --project tsconfig.lib.json",
     "build:run": "webpack --config webpack.config.client.js && webpack --config webpack.config.server.js && node ./dist/server.js",    
     "start": "node ./dist/server.js",
     "start:dev": "node dev.js"

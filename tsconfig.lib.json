@@ -1,0 +1,22 @@
+{
+  "files": [
+    "client/components/index.ts"
+  ],
+  "compilerOptions": {
+    "declaration": true,
+    "outDir": "dist",
+    "module": "commonjs",
+    "sourceMap": true,
+    "target": "es5",
+    "moduleResolution": "node",
+    "jsx": "react",
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "skipLibCheck": true,
+    "resolveJsonModule": true,
+    "strict": true,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "esModuleInterop": false,
+  }
+}
