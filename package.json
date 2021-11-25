@@ -40,7 +40,7 @@
     "build:server": "webpack --config webpack.config.server.js",
     "build:client": "webpack --config webpack.config.lib.js",
     "build:lib": "tsc --project tsconfig.lib.json",
-    "build:run": "webpack --config webpack.config.client.js && webpack --config webpack.config.server.js && node ./dist/server.js",    
+    "build:run": "webpack --config webpack.config.client.js && webpack --config webpack.config.server.js && node ./dist/server.js",
     "start": "node ./dist/server.js",
     "start:dev": "node dev.js"
   },

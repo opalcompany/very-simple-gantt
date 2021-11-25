@@ -23,6 +23,7 @@ import { GanttBar } from "./GanttBar"
 import { OnGanttDragBarEvent, OnGanttEndDragBarEvent, OnGanttEndResizeBarEvent, OnGanttResizeBarEvent, OnGanttStartDragBarEvent, OnGanttStartResizeBarEvent } from './GanttEvents';
 import { GanttRow } from './GanttRow';
 //import { Margins } from './Margins';
+require ('./style')
 
 export class Gantt<T> {
     // scales
@@ -33,7 +34,7 @@ export class Gantt<T> {
     private headersWidth: number = 100;
     // data
     private bars: GanttBar<T>[];
-    private rows: GanttRow[];
+    readonly rows: GanttRow[];
     // time range
     public startDate: Date;
     private endDate: Date;
@@ -129,7 +130,9 @@ export class Gantt<T> {
                 bar.endTime = newEndTime
                 this.doUpdateBars(this.bars);
             }
-
+            const pn = d3.select<any, any>("#" + this.idToValidDomId(bar.id));
+            //pn.raise().style("opacity", bar.opacity / 2)        
+            pn.raise().classed("ganttBarResizing", true)
         }
     }
 
@@ -194,6 +197,9 @@ export class Gantt<T> {
                 bar.endTime = newEndTime;
                 this.doUpdateBars(this.bars);
             }
+            d3.select("#" + this.idToValidDomId(this.draggedBarId!))
+                .classed("ganttBarDragging", true)
+
         }
     }
 
@@ -309,7 +315,8 @@ export class Gantt<T> {
             .domain([this.startDate, this.endDate]);
 
         this.xAxis = d3.axisTop<Date>(this.scale)
-            .ticks(d3.timeDay);
+            //.ticks(d3.timeDay)
+            .ticks(40)
         //.tickFormat(d=>d3.timeFormat("%B %Y")(d));                     
 
 
@@ -392,9 +399,12 @@ export class Gantt<T> {
 
         this.assignBars(nbars, this.bars)
 
-        var bars = d3.selectAll<SVGGElement, GanttBar<T>>("g.ganttBar").data(this.bars, (bar: GanttBar<T>) => bar.id)
+        var bars = d3
+            .selectAll<SVGGElement, GanttBar<T>>("g.ganttBar")
+            .data(this.bars, (bar: GanttBar<T>) => bar.id)
 
         bars.attr("transform", (bar: GanttBar<T>) => this.gTransform(bar, 0))
+            .attr('class', (bar: GanttBar<T>) => ['ganttBar', ...bar.classes ?? []].join(' '))
             .attr("id", (bar: GanttBar<T>) => { return this.idToValidDomId(bar.id) })
 
         const roundness = 0.08;
@@ -445,13 +455,15 @@ export class Gantt<T> {
 }
 
 function copyBar<T>(src: GanttBar<T>, dest: GanttBar<T>) {
-    dest.id = src.id;
-    dest.height = src.height;
-    dest.startTime = src.startTime;
-    dest.endTime = src.endTime;
-    dest.barColor = src.barColor;
-    dest.caption = src.caption;
-    dest.opacity = src.opacity;
-    dest.data = src.data;
+    Object.assign(dest, src)
+    // dest.id = src.id;
+    // dest.height = src.height;
+    // dest.startTime = src.startTime;
+    // dest.endTime = src.endTime;
+    // dest.barColor = src.barColor;
+    // dest.caption = src.caption;
+    // dest.opacity = src.opacity;
+    // dest.data = src.data;
+    // dest.classes = src.classes;
 }
 

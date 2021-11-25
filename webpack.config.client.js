@@ -14,7 +14,7 @@ module.exports = {
     publicPath: "",
   },
   resolve: {
-    extensions: [".ts", ".tsx", ".js", ".sass"],
+    extensions: [".ts", ".tsx", ".js", ".scss"],
   },
   module: {
     rules: [

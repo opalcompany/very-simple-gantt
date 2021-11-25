@@ -1,5 +1,6 @@
 
 export interface GanttBar<T> {
+    classes?: string[];
     id: string;
     row: number;
     height: number;

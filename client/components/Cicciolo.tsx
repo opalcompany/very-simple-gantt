@@ -82,6 +82,7 @@ export const Cicciolo: React.FC = () => {
                     resizeble: r === 0 || (r + e) % 2 === 0,
                     data: data,
                     opacity: .5,
+                    classes: ['test', `step-${r}`]
                 }
                 bars.push(b);
 
@@ -176,6 +177,7 @@ export const Cicciolo: React.FC = () => {
         gantt.onDrag = onDrag
         gantt.onResize = onResize
 
+        console.log(rows, bars)
         const updateChart = () => {
             gantt.loadBars()
         }
