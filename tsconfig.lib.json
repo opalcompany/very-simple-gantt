@@ -2,14 +2,14 @@
   "files": [
     "client/components/index.ts"
   ],
+  
   "compilerOptions": {
     "declaration": true,
-    "outDir": "dist",
+    "declarationDir": "build",
     "module": "commonjs",
     "sourceMap": true,
     "target": "es5",
-    "moduleResolution": "node",
-    "jsx": "react",
+    //"moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
     "forceConsistentCasingInFileNames": true,
     "skipLibCheck": true,
