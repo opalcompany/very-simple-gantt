@@ -56,6 +56,8 @@ export const DEFAULT_OPTIONS: GanttOptions = {
         fontSize: 18,
     }
 }
+const resizingClass = 'ganttBarResizing';
+const draggingClass = 'ganttBarDragging';
 export class Gantt<T> {
     // scales
     private scale: d3.ScaleTime<number, number, never>;
@@ -71,14 +73,13 @@ export class Gantt<T> {
     public horizontalLinesColor: string = "#cbcdd6"
     public resizeAnchorWidth: number = 3
     // drag'n'drop
-    private dragging: boolean
     private startXOfDragEvent?: number
     private draggedBarStartX?: number
     private draggedBarEndX?: number
     private draggedBarId?: string
     private draggedBarY?: number
     // resizing
-    private resizing: boolean
+    private resizingBarId?: string;
     private startXOfResizeEvent?: number
     //private resizingBarStartX?: number;
     private resizingBarEndX?: number
@@ -93,6 +94,7 @@ export class Gantt<T> {
     public onEndResize?: OnGanttEndResizeBarEvent<T>;
 
     container: HTMLElement;
+
 
     private height(): number {
         return (this.options.rowHeight * this.rows.length) + this.options.timebarHeight
@@ -131,15 +133,15 @@ export class Gantt<T> {
 
         this.startXOfResizeEvent = d3.pointer(event, el)[0]
         this.resizingBarEndX = this.scale(bar.endTime)
-        this.resizing = true
+        this.resizingBarId = bar.id
 
         const pn = d3.select<any, any>("#" + this.idToValidDomId(bar.id));
         //pn.raise().style("opacity", bar.opacity / 2)        
-        pn.raise().classed("ganttBarResizing", true)
+        pn.raise().classed(resizingClass, true)
     }
 
     private gOnResize(el: any, event: any, bar: GanttBar<T>): any {
-        if (this.resizing) {
+        if (this.resizingBarId) {
             const correctX = d3.pointer(event, el)[0]
             const delta = correctX - this.startXOfResizeEvent!;
             let newEndTime = this.scale.invert(this.resizingBarEndX! + delta);
@@ -159,25 +161,24 @@ export class Gantt<T> {
             }
             const pn = d3.select<any, any>("#" + this.idToValidDomId(bar.id));
             //pn.raise().style("opacity", bar.opacity / 2)        
-            pn.raise().classed("ganttBarResizing", true)
+            pn.raise()
         }
     }
 
     private gOnEndResize(el: any, event: any, bar: GanttBar<T>): any {
         const pn = d3.select<any, any>("#" + this.idToValidDomId(bar.id));
         //pn.style("opacity", null)
-        pn.classed("ganttBarResizing", false)
-        this.resizing = false;
+        pn.classed(resizingClass, false)
+        this.resizingBarId = undefined;
         if (this.onEndResize) {
             const clonedBars: GanttBar<T>[] = []
             this.cloneBars(this.bars, clonedBars)
             this.onEndResize(bar, clonedBars)
         }
-
     }
 
     private gOnStartDrag(el: Element, event: any, bar: GanttBar<T>): any {
-        this.dragging = false
+        this.draggedBarId = undefined
         if (!bar.draggable) return
         if (this.onStartDrag) {
             if (!this.onStartDrag(bar)) return
@@ -187,16 +188,15 @@ export class Gantt<T> {
         this.draggedBarEndX = this.scale(bar.endTime);
         this.draggedBarId = bar.id;
         this.draggedBarY = this.calculateBarY(bar);
-        this.dragging = true;
         d3.select("#" + this.idToValidDomId(this.draggedBarId!))
-            .classed("ganttBarDragging", true)
+            .classed(draggingClass, true)
             //.style("opacity", bar.opacity / 2)
             .attr("cursor", "grabbing")
             .raise()
     }
 
     private gOnDrag(el: Element, event: any, bar: GanttBar<T>) {
-        if (this.dragging) {
+        if (this.draggedBarId) {
             const delta = event.x - this.startXOfDragEvent!;
             let newStartTime = new Date(this.scale.invert(this.draggedBarStartX! + delta));
             let newEndTime = new Date(this.scale.invert(this.draggedBarEndX! + delta));
@@ -225,22 +225,20 @@ export class Gantt<T> {
                 this.doUpdateBars(this.bars);
             }
             d3.select("#" + this.idToValidDomId(this.draggedBarId!))
-                .classed("ganttBarDragging", true)
-
         }
     }
 
     private gOnEndDrag(el: Element, event: any, bar: GanttBar<T>): any {
-        if (this.dragging) {
+        if (this.draggedBarId) {
             if (this.onEndDrag) {
                 this.onEndDrag(bar, this.bars)
             }
             d3.select<any, GanttBar<T>>("#" + this.idToValidDomId(this.draggedBarId!))
-                .classed("ganttBarDragging", false)
-                //.style("opacity", null) //bar.opacity)
-                .attr("cursor", this.cursorForBar)
+            .classed(draggingClass, false)
+            //.style("opacity", null) //bar.opacity)
+            .attr("cursor", this.cursorForBar)
         }
-        this.dragging = false;
+        this.draggedBarId = undefined;
     }
 
     private barWidth = (bar: GanttBar<T>) => {
@@ -305,8 +303,6 @@ export class Gantt<T> {
         this.bars = bars
         this.startDate = startDate
         this.endDate = endDate
-        this.dragging = false;
-        this.resizing = false;
         this.container = container
         this.options = options ?? DEFAULT_OPTIONS
 
@@ -432,7 +428,7 @@ export class Gantt<T> {
             .data(this.bars, (bar: GanttBar<T>) => bar.id)
 
         bars.attr("transform", (bar: GanttBar<T>) => this.gTransform(bar, 0))
-            .attr('class', (bar: GanttBar<T>) => ['ganttBar', ...bar.classes ?? []].join(' '))
+            .attr('class', (bar: GanttBar<T>) => this.classesForBar(bar).join(' '))
             .attr("id", (bar: GanttBar<T>) => { return this.idToValidDomId(bar.id) })
 
         const roundness = 0.08;
@@ -447,7 +443,7 @@ export class Gantt<T> {
 
         bars.selectChild(".ganttBarCaption")
             .attr("x", (bar: GanttBar<T>) => this.barWidth(bar) / 2)
-            .attr("y", (bar: GanttBar<T>) => (bar.height ) / 2)
+            .attr("y", (bar: GanttBar<T>) => (bar.height) / 2)
             .attr("text-anchor", "middle")
             .attr("dominant-baseline", "middle")
             .style("font-family", this.options.bars.fontFamily)
@@ -472,6 +468,15 @@ export class Gantt<T> {
             .attr("y", (bar: GanttBar<T>) => bar.height * roundness)
             .style("opacity", (bar: GanttBar<T>) => .2)
             .attr("visibility", (bar: GanttBar<T>) => this.barWidth(bar) > 3 * bar.height * roundness ? "visible" : "hidden")
+    }
+
+    private classesForBar = (bar: GanttBar<T>) => {
+        const result = ['ganttBar', ...bar.classes ?? []]
+        if (bar.id === this.draggedBarId)
+            result.push(draggingClass)
+        if (bar.id === this.resizingBarId)
+            result.push(resizingClass)
+        return result
     }
 
     /**
