@@ -19,19 +19,47 @@
 
 import * as d3 from 'd3';
 import * as d3drag from 'd3-drag';
+import { DEFAULT_ECDH_CURVE } from 'tls';
 import { GanttBar } from "./GanttBar"
 import { OnGanttDragBarEvent, OnGanttEndDragBarEvent, OnGanttEndResizeBarEvent, OnGanttResizeBarEvent, OnGanttStartDragBarEvent, OnGanttStartResizeBarEvent } from './GanttEvents';
 import { GanttRow } from './GanttRow';
 //import { Margins } from './Margins';
-require ('./style')
+import './style.scss'
+//require('./style.scss')
 
+export interface GanttOptions {
+    rowHeight: number
+    width: number
+    headers: {
+        width: number
+        fontFamily: string
+        fontSize: number
+    }
+    bars: {
+        fontFamily: string
+        fontSize: number
+    }
+    timebarHeight: number
+}
+
+export const DEFAULT_OPTIONS: GanttOptions = {
+    headers: {
+        width: 100,
+        fontFamily: "",
+        fontSize: 18,
+    },
+    rowHeight: 70,
+    width: 2000,
+    timebarHeight: 60,
+    bars: {
+        fontFamily: "",
+        fontSize: 18,
+    }
+}
 export class Gantt<T> {
     // scales
     private scale: d3.ScaleTime<number, number, never>;
     private xAxis: d3.Axis<Date>;
-    // sizes
-    private timebarHeight: number = 60;
-    private headersWidth: number = 100;
     // data
     private bars: GanttBar<T>[];
     readonly rows: GanttRow[];
@@ -39,8 +67,7 @@ export class Gantt<T> {
     public startDate: Date;
     private endDate: Date;
     // appearance
-    public rowHeight: number = 100
-    public width: number = 2000
+    private options: GanttOptions
     public horizontalLinesColor: string = "#cbcdd6"
     public resizeAnchorWidth: number = 3
     // drag'n'drop
@@ -68,11 +95,11 @@ export class Gantt<T> {
     container: HTMLElement;
 
     private height(): number {
-        return (this.rowHeight * this.rows.length) + this.timebarHeight
+        return (this.options.rowHeight * this.rows.length) + this.options.timebarHeight
     }
 
     private convertGanttXToContainerX(ganttXCoord: number): number {
-        return ganttXCoord + this.headersWidth
+        return ganttXCoord + this.options.headers.width
     }
 
     private calculateBarX(bar: GanttBar<T>, x: number): number {
@@ -80,7 +107,7 @@ export class Gantt<T> {
     }
 
     private calculateBarY(bar: GanttBar<T>): number {
-        return (bar.row * this.rowHeight) + this.timebarHeight + ((this.rowHeight - bar.height) / 2);
+        return (bar.row * this.options.rowHeight) + this.options.timebarHeight + ((this.options.rowHeight - bar.height) / 2);
     }
 
     private gTransform = (bar: GanttBar<T>, x: number) => {
@@ -273,7 +300,7 @@ export class Gantt<T> {
 
     }
 
-    constructor(container: HTMLElement, startDate: Date, endDate: Date, rows: GanttRow[], bars: GanttBar<T>[]) {
+    constructor(container: HTMLElement, startDate: Date, endDate: Date, rows: GanttRow[], bars: GanttBar<T>[], options?: GanttOptions) {
         this.rows = rows
         this.bars = bars
         this.startDate = startDate
@@ -281,6 +308,7 @@ export class Gantt<T> {
         this.dragging = false;
         this.resizing = false;
         this.container = container
+        this.options = options ?? DEFAULT_OPTIONS
 
         const parent = d3.select(container)
             .append("div")
@@ -299,7 +327,7 @@ export class Gantt<T> {
 
         const headerSvg = svg
             .attr("class", "header")
-            .attr("width", this.headersWidth)
+            .attr("width", this.options.headers.width)
             .attr("height", this.height())
             .style("position", "absolute")
             .style("pointer-events", "none")
@@ -311,7 +339,7 @@ export class Gantt<T> {
             .style("-webkit-overflow-scrolling", "touch");
 
         this.scale = d3.scaleTime()
-            .range([0, this.width - this.headersWidth])
+            .range([0, this.options.width - this.options.headers.width])
             .domain([this.startDate, this.endDate]);
 
         this.xAxis = d3.axisTop<Date>(this.scale)
@@ -328,28 +356,28 @@ export class Gantt<T> {
 
         svgElementsHeader.append("rect")
             .attr("x", 0)
-            .attr("y", (row: GanttRow, i: number) => (i * this.rowHeight) + this.timebarHeight)
-            .attr("width", () => this.headersWidth)
-            .attr("height", () => this.rowHeight)
+            .attr("y", (_, i: number) => (i * this.options.rowHeight) + this.options.timebarHeight)
+            .attr("width", () => this.options.headers.width)
+            .attr("height", () => this.options.rowHeight)
             .attr("fill", (row: GanttRow) => row.color)
             .attr("stroke", (row: GanttRow) => row.borderColor)
 
         svgElementsHeader.append("text")
-            .attr("x", () => (this.headersWidth / 2))
-            .attr("y", (row: GanttRow, i: number) => (i * this.rowHeight) + this.timebarHeight + (this.rowHeight / 2))
-            .style("font-family", "Serif")
-            .style("font-size", "10px")
+            .attr("x", () => (this.options.headers.width / 2))
+            .attr("y", (_, i: number) => (i * this.options.rowHeight) + this.options.timebarHeight + (this.options.rowHeight / 2))
+            .style("font-family", this.options.headers.fontFamily)
+            .style("font-size", this.options.headers.fontSize)
             .style("text-anchor", "middle")
             .text(function (row: GanttRow) { return row.caption; });
 
         const pannableSvg = body.append("svg")
             .attr("class", "bars")
-            .attr("width", this.width)
+            .attr("width", this.options.width)
             .attr("height", this.height())
             .style("display", "block");
         pannableSvg
             .append("g")
-            .attr("transform", "translate(" + this.headersWidth + "," + this.timebarHeight + ")")      // This controls the vertical position of the Axis
+            .attr("transform", "translate(" + this.options.headers.width + "," + this.options.timebarHeight + ")")      // This controls the vertical position of the Axis
             .call(this.xAxis);
 
         const svgElementHorizontalLines = pannableSvg.append("g")
@@ -358,10 +386,10 @@ export class Gantt<T> {
         let i: number;
         for (i = 0; i < this.rows.length; i++) {
             svgElementHorizontalLines.append("line")
-                .attr("x1", this.headersWidth)
-                .attr("x2", this.width)
-                .attr("y1", this.timebarHeight + (i * this.rowHeight))
-                .attr("y2", this.timebarHeight + (i * this.rowHeight));
+                .attr("x1", this.options.headers.width)
+                .attr("x2", this.options.width)
+                .attr("y1", this.options.timebarHeight + (i * this.options.rowHeight))
+                .attr("y2", this.options.timebarHeight + (i * this.options.rowHeight));
         }
         pannableSvg.on("click", (e: { target: any; }) => {
             console.log("clic! " + d3.select<any, GanttBar<T>>(e.target).datum().id)
@@ -370,7 +398,7 @@ export class Gantt<T> {
         //yield parent.node();
 
         // Initialize the scroll offset after yielding the chart to the DOM.
-        body.node()!.scrollBy(this.width, 0);
+        body.node()!.scrollBy(this.options.width, 0);
 
     }
 
@@ -419,11 +447,11 @@ export class Gantt<T> {
 
         bars.selectChild(".ganttBarCaption")
             .attr("x", (bar: GanttBar<T>) => this.barWidth(bar) / 2)
-            .attr("y", (bar: GanttBar<T>) => this.rowHeight / 3)
+            .attr("y", (bar: GanttBar<T>) => (bar.height ) / 2)
             .attr("text-anchor", "middle")
             .attr("dominant-baseline", "middle")
-            .style("font-family", "Mono")
-            .style("font-size", "30px")
+            .style("font-family", this.options.bars.fontFamily)
+            .style("font-size", this.options.bars.fontSize)
             .attr("cursor", "inherited")
             .text(function (bar: GanttBar<T>) { return bar.caption; });
 

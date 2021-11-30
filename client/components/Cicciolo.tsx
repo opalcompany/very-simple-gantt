@@ -1,7 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import * as d3 from 'd3';
 import { GanttBar } from './GanttBar'
-import { Gantt } from './Gantt'
+import { DEFAULT_OPTIONS, Gantt } from './Gantt'
 import { GanttRow } from './GanttRow';
 import { exit } from 'process';
 
@@ -74,7 +74,7 @@ export const Cicciolo: React.FC = () => {
                     row: r,
                     startTime: dateLimit,
                     endTime: new Date(dateLimit.getTime() + data.originalDurationInMillis),
-                    height: 70,
+                    height: 40,
                     barColor: d3.interpolateRainbow(Math.random()),
                     id: "EXP" + e + "AZZ" + r,
                     caption: "EX " + e + " ACT" + r,
@@ -92,8 +92,9 @@ export const Cicciolo: React.FC = () => {
             }
         }
 
-        const gantt = new Gantt(d3Container.current!, startDate, endDate, rows, bars);
-
+        const gantt = new Gantt(d3Container.current!, startDate, endDate, rows, bars, {
+            ...DEFAULT_OPTIONS, rowHeight: 60
+        });
         const onEndDrag = (bar: GanttBar<GanttData>, bars: GanttBar<GanttData>[]): void => {
             //return false;            
             //const d = JSON.parse(bar.data) as GanttData
@@ -157,15 +158,15 @@ export const Cicciolo: React.FC = () => {
                 var t = newEndTime
                 bars.sort((b1, b2) => b1.data.actionId! - b2.data.actionId!).forEach(b => {
                     const bd = b.data as GanttData
-                    if (bd.experimentId! !== resizedBarData.experimentId!) 
+                    if (bd.experimentId! !== resizedBarData.experimentId!)
                         return
-                    if ( bd.actionId! > resizedBarData.actionId!) {
+                    if (bd.actionId! > resizedBarData.actionId!) {
                         const barDuration = b.endTime.getTime() - b.startTime.getTime();
                         b.startTime = t
                         t = new Date(t.getTime() + barDuration)
                         b.endTime = t
                     }
-                    else if (bd.actionId! === resizedBarData.actionId!){
+                    else if (bd.actionId! === resizedBarData.actionId!) {
                         b.endTime = newEndTime
                     }
                 })
