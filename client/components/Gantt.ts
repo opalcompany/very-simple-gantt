@@ -411,9 +411,9 @@ export class Gantt<T> {
         this.startDate = startDate
         this.endDate = endDate
 
+        this.loadTimeBar()
         this.loadHeaders()
         this.loadBars()
-        this.loadTimeBar()
     }
 
     private loadTimeBar = () => {
