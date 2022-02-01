@@ -8,7 +8,7 @@ export interface GanttBar<T> {
     endTime: Date;
     barColor: string;
     opacity: number;
-    caption: string;
+    captions: string[];
     data: T;
     draggable: boolean;
     resizeble: boolean;

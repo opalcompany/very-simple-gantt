@@ -36,7 +36,7 @@ export interface GanttOptions {
     }
     bars: {
         fontFamily: string
-        fontSize: number
+        fontSizes: number[]
         roundness: number
     }
     timebarHeight: number
@@ -53,7 +53,7 @@ export const DEFAULT_OPTIONS: GanttOptions = {
     timebarHeight: 60,
     bars: {
         fontFamily: "",
-        fontSize: 18,
+        fontSizes: [14, 10],
         roundness: 0.1,
     }
 }
@@ -277,7 +277,8 @@ export class Gantt<T> {
 
         const bars = svgElementBars
         bars.append("rect").attr("class", "ganttBarRect")
-        bars.append("text").attr("class", "ganttBarCaption")
+        bars.append("text").attr("class", "ganttBarCaption line-1")
+        bars.append("text").attr("class", "ganttBarCaption line-2")
 
         bars.filter((bar: GanttBar<T>) => bar.draggable)
             .append("rect")
@@ -459,15 +460,25 @@ export class Gantt<T> {
             .attr("fill", (bar: GanttBar<T>) => bar.barColor)
 
 
-        bars.selectChild(".ganttBarCaption")
+        bars.selectChild(".ganttBarCaption.line-1")
             .attr("x", (bar: GanttBar<T>) => this.barWidth(bar) / 2)
-            .attr("y", (bar: GanttBar<T>) => (bar.height) / 2)
+            .attr("y", (bar: GanttBar<T>) => bar.height / 4)
             .attr("text-anchor", "middle")
-            .attr("dominant-baseline", "middle")
+            .attr("dominant-baseline", "central")
             .style("font-family", this.options.bars.fontFamily)
-            .style("font-size", this.options.bars.fontSize)
+            .style("font-size", this.options.bars.fontSizes[0])
             .attr("cursor", "inherited")
-            .text(function (bar: GanttBar<T>) { return bar.caption; });
+            .text(function (bar: GanttBar<T>) { return bar.captions[0]; });
+
+        bars.selectChild(".ganttBarCaption.line-2")
+            .attr("x", (bar: GanttBar<T>) => this.barWidth(bar) / 2)
+            .attr("y", (bar: GanttBar<T>) => bar.height / 4 * 3)
+            .attr("text-anchor", "middle")
+            .attr("dominant-baseline", "central")
+            .style("font-family", this.options.bars.fontFamily)
+            .style("font-size", this.options.bars.fontSizes[1] ?? this.options.bars.fontSizes[0])
+            .attr("cursor", "inherited")
+            .text(function (bar: GanttBar<T>) { return bar.captions[1]; });
 
         bars.selectChild(".ganttBarHandle")
             .attr("x", (bar: GanttBar<T>) => this.barWidth(bar) - this.resizeAnchorWidth)

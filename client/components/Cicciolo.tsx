@@ -211,7 +211,7 @@ function makeOne(startDate: Date) {
                 height: 40,
                 barColor: d3.interpolateRainbow(Math.random()),
                 id: "EXP" + e + "AZZ" + r,
-                caption: "EX " + e + " ACT" + r,
+                captions: ["EX " + e, " ACT" + r],
                 draggable: data.actionId === 1,
                 resizeble: r === 0 || (r + e) % 2 === 0,
                 data: data,
