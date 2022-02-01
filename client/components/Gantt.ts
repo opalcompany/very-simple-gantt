@@ -50,7 +50,7 @@ export const DEFAULT_OPTIONS: GanttOptions = {
     },
     rowHeight: 70,
     width: 2000,
-    timebarHeight: 60,
+    timebarHeight: 30,
     bars: {
         fontFamily: "",
         fontSizes: [14, 10],
