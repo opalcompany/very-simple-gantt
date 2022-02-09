@@ -1,9 +1,13 @@
 {
-  "name": "very-simple-gantt",
+  "name": "@opalcompany/very-simple-gantt",
   "version": "1.0.0",
   "description": "Gantt Project",
   "main": "build/very-simple-gantt.js",
   "types": "build/",
+  "files": [
+    "build",
+    "README.md"
+  ],
   "dependencies": {
     "axios": "^0.21.4",
     "bootstrap": "^5.1.0",

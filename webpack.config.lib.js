@@ -1,5 +1,6 @@
 const path = require("path");
 const { CleanWebpackPlugin } = require("clean-webpack-plugin");
+const nodeExternals = require('webpack-node-externals');
 
 module.exports = {
   //name: "index",
@@ -21,6 +22,7 @@ module.exports = {
   resolve: {
     extensions: [".ts", ".tsx", ".js"],
   },
+  externals: [nodeExternals()],
   module: {
     rules: [
       {

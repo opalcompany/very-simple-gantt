@@ -26,6 +26,8 @@ import { GanttRow } from './GanttRow';
 import './style.scss';
 //require('./style.scss')
 
+export { GanttBar, GanttRow };
+
 export interface GanttOptions {
     rowHeight: number
     width: number
