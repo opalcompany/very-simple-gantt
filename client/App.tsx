@@ -1,23 +1,24 @@
-import React, { Fragment } from 'react';
-import { Container } from 'react-bootstrap';
-import Navbar from 'react-bootstrap/Navbar';
-import { MainComponent } from './components/MainComponent';
-import img from './logo.png';
-import './style.scss';
+import React, { Fragment } from "react";
+import { Container } from "react-bootstrap";
+import Navbar from "react-bootstrap/Navbar";
+import { Dummy } from "./Dummy";
+import img from "./logo.png";
+import "./style.scss";
 
-export const App: React.FC = () => <Fragment>
+export const App: React.FC = () => (
+  <Fragment>
     <Navbar bg="light" expand="lg">
-        <Container>
-            <Navbar.Brand href="#home">
-                <img
-                    alt=""
-                    src={img}
-                    height="30"
-                    className="d-inline-block align-top"
-                />{' '}
-                Title xxx
-            </Navbar.Brand>
-            {/* <Navbar.Toggle aria-controls="basic-navbar-nav" />
+      <Container>
+        <Navbar.Brand href="#home">
+          <img
+            alt=""
+            src={img}
+            height="30"
+            className="d-inline-block align-top"
+          />{" "}
+          Title xxx
+        </Navbar.Brand>
+        {/* <Navbar.Toggle aria-controls="basic-navbar-nav" />
             <Navbar.Collapse id="basic-navbar-nav">
                 <Nav className="me-auto">
                     <Nav.Link href="#home">Home</Nav.Link>
@@ -31,7 +32,10 @@ export const App: React.FC = () => <Fragment>
                     </NavDropdown>
                 </Nav>
             </Navbar.Collapse> */}
-        </Container>
+      </Container>
     </Navbar>
-    <MainComponent />
-</Fragment>;
+    <Container>
+      <Dummy />
+    </Container>
+  </Fragment>
+);
