@@ -451,8 +451,8 @@ export class Gantt<T> {
       )
       .attr("width", () => this.options.headers.width)
       .attr("height", () => this.options.rowHeight)
-      .attr("fill", (row: GanttRow) => row.color)
-      .attr("stroke", (row: GanttRow) => row.borderColor);
+      .attr("fill", (row: GanttRow) => row.color ?? null)
+      .attr("stroke", (row: GanttRow) => row.borderColor ?? null);
 
     svgElementsHeader
       .append("text")
