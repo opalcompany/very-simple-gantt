@@ -1,9 +1,48 @@
 @import "~bootstrap/scss/bootstrap";
 
 @media screen and (min-color-index: 0) and(-webkit-min-device-pixel-ratio:0) {
-    input[type="date"],
-    input[type="time"] {
-        height: 13px;
-        line-height: 1.2em;
+  input[type="date"],
+  input[type="time"] {
+    height: 13px;
+    line-height: 1.2em;
+  }
+}
+
+g.ganttBar {
+  &.exp-1 {
+    > rect.ganttBarRect {
+      //stroke-opacity: 1;
+      //fill-opacity: 0.5;
+      fill: #e1fcde;
+      stroke: #049b22;
+      stroke-width: 1;
+      &:hover {
+        stroke-width: 2;
+      }
     }
+    > rect.ganttBarHandle {
+      fill: #049b22;
+    }
+  }
+}
+
+div.gantt-tooltip {
+  > div.gantt-tooltip-content {
+    background-color: darkgrey;
+    color: white;
+    padding: 1em;
+  }
+
+  path.gantt-arrow-path {
+    fill: red;
+  }
+}
+
+line.gantt-top-line {
+  stroke: yellow;
+  stroke-width: 2;
+}
+
+.timeBar > .domain {
+  stroke: none !important;
 }

@@ -124,6 +124,11 @@ const GanttViewer: React.FC<GanttViewerProps> = (props) => {
       ...DEFAULT_OPTIONS,
       rowHeight: 60,
       headers: { ...DEFAULT_OPTIONS.headers, width: 200 },
+      bars: {
+        ...DEFAULT_OPTIONS.bars,
+        fontSizes: [11, 11],
+        roundness: 4,
+      },
     });
 
     const onEndDrag = (
@@ -220,6 +225,7 @@ const GanttViewer: React.FC<GanttViewerProps> = (props) => {
     gantt.onEndDrag = onEndDrag;
     gantt.onDrag = onDrag;
     gantt.onResize = onResize;
+    gantt.onTooltip = (bar) => <div>ciao</div>;
     setGantt(gantt);
   }, []); //ony once
 
@@ -230,7 +236,7 @@ const GanttViewer: React.FC<GanttViewerProps> = (props) => {
     console.log(props.bars[0]);
   }, [props, gantt]);
 
-  return <div id="dummy" ref={d3Container} />;
+  return <div className="very-simple-gantt" ref={d3Container} />;
 };
 
 function makeOne(startDate: Date) {
@@ -240,7 +246,7 @@ function makeOne(startDate: Date) {
   for (let i = 0; i < rowNum; i++) {
     let r: GanttRow = {
       row: i,
-      caption: "CAZZILLATORE " + i,
+      caption: "Machine " + i,
       borderColor: "#006600",
       color: "#00cc00",
     };
@@ -262,15 +268,29 @@ function makeOne(startDate: Date) {
         row: r,
         startTime: dateLimit,
         endTime: new Date(dateLimit.getTime() + data.originalDurationInMillis),
-        height: 40,
+        height: 44,
         barColor: d3.interpolateRainbow(Math.random()),
         id: "EXP" + e + "AZZ" + r,
-        captions: ["EX " + e, " ACT" + r],
+        captions: [
+          "EX " + e,
+          " ACT" +
+            r +
+            " ACT" +
+            r +
+            " ACT" +
+            r +
+            " ACT" +
+            r +
+            " ACT" +
+            r +
+            " ACT" +
+            r,
+        ],
         draggable: data.actionId === 1,
         resizeble: r === 0 || (r + e) % 2 === 0,
         data: data,
-        opacity: 0.5,
-        classes: ["test", `step-${r}`],
+        //opacity: 0.5,
+        classes: ["test", `step-${r}`, `exp-${e}`],
       };
       bars.push(b);
 

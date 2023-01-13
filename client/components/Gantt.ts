@@ -18,15 +18,8 @@
 
 import * as d3 from "d3";
 import * as d3drag from "d3-drag";
+import ReactDOM from "react-dom";
 import { GanttBar } from "./GanttBar";
-import {
-  OnGanttDragBarEvent,
-  OnGanttEndDragBarEvent,
-  OnGanttEndResizeBarEvent,
-  OnGanttResizeBarEvent,
-  OnGanttStartDragBarEvent,
-  OnGanttStartResizeBarEvent,
-} from "./GanttEvents";
 import { GanttRow } from "./GanttRow";
 //import { Margins } from './Margins';
 import "./style.scss";
@@ -43,9 +36,25 @@ export interface GanttOptions {
     fontSize: number;
   };
   bars: {
+    resizeAnchor: {
+      width: number;
+      height: number;
+      padding: number;
+      roundness?: number;
+    };
+    moveAnchor: {
+      width: number;
+      height: number;
+      padding: number;
+      roundness?: number;
+    };
+    paddingLeft: number;
+    paddingRight: number;
+    paddingTop: number;
+    paddingBottom: number;
     fontFamily: string;
     fontSizes: number[];
-    roundness: number;
+    roundness?: number;
   };
   timebarHeight: number;
 }
@@ -60,13 +69,20 @@ export const DEFAULT_OPTIONS: GanttOptions = {
   width: 2000,
   timebarHeight: 30,
   bars: {
+    paddingLeft: 20,
+    paddingRight: 20,
+    paddingBottom: 5,
+    paddingTop: 5,
     fontFamily: "",
     fontSizes: [14, 10],
     roundness: 0.1,
+    moveAnchor: { width: 4, height: 32, padding: 6, roundness: 2 },
+    resizeAnchor: { width: 4, height: 12, padding: 6, roundness: 2 },
   },
 };
 const resizingClass = "ganttBarResizing";
 const draggingClass = "ganttBarDragging";
+
 export class Gantt<T> {
   // scales
   private scale!: d3.ScaleTime<number, number, never>;
@@ -74,6 +90,8 @@ export class Gantt<T> {
   // data
   private bars: GanttBar<T>[] = [];
   private _rows: GanttRow[] = [];
+  private tooltip: d3.Selection<HTMLDivElement, unknown, any, any>;
+
   public get rows() {
     return this._rows;
   }
@@ -83,7 +101,6 @@ export class Gantt<T> {
   // appearance
   private options: GanttOptions;
   public horizontalLinesColor: string = "#cbcdd6";
-  public resizeAnchorWidth: number = 3;
   // drag'n'drop
   private startXOfDragEvent?: number;
   private draggedBarStartX?: number;
@@ -97,13 +114,23 @@ export class Gantt<T> {
   private resizingBarEndX?: number;
   //private resizingBarY?: number;
 
-  public onStartDrag?: OnGanttStartDragBarEvent<T>;
-  public onDrag?: OnGanttDragBarEvent<T>;
-  public onEndDrag?: OnGanttEndDragBarEvent<T>;
+  public onStartDrag?: (bar: GanttBar<T>) => boolean;
+  public onDrag?: (
+    bar: GanttBar<T>,
+    newStartTime: Date,
+    bars: GanttBar<T>[]
+  ) => void;
+  public onEndDrag?: (bar: GanttBar<T>, bars: GanttBar<T>[]) => void;
 
-  public onStartResize?: OnGanttStartResizeBarEvent<T>;
-  public onResize?: OnGanttResizeBarEvent<T>;
-  public onEndResize?: OnGanttEndResizeBarEvent<T>;
+  // must return false if resizing is not allowed for the bar, true if allowed
+  public onStartResize?: (resizedBar: GanttBar<T>) => boolean;
+  public onTooltip?: (bar: GanttBar<T>) => JSX.Element;
+  public onResize?: (
+    resizedBar: GanttBar<T>,
+    newEndTime: Date,
+    bars: GanttBar<T>[]
+  ) => void;
+  public onEndResize?: (resizedBar: GanttBar<T>, bars: GanttBar<T>[]) => void;
 
   private container: HTMLElement;
   private headerSvg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
@@ -257,6 +284,36 @@ export class Gantt<T> {
     return this.scale(bar.endTime) - this.scale(bar.startTime);
   };
 
+  private makeTooltip(
+    parent: d3.Selection<HTMLDivElement, unknown, HTMLElement, undefined>
+  ): d3.Selection<HTMLDivElement, unknown, any, any> {
+    const result = parent
+      .append("div")
+      .attr("class", "gantt-tooltip")
+      .style("position", "absolute")
+      .style("z-index", 10)
+      .style("visibility", "hidden");
+    const a = result
+      .append("svg")
+      .attr("class", "gantt-arrow")
+      .attr("width", 8)
+      .attr("height", 5)
+      .style("position", "absolute");
+
+    const tooltipArrow = a.append("g");
+    tooltipArrow
+      .append("path")
+      .attr("class", "gantt-arrow-path")
+      .attr("d", "M4 0L8 5L0 5L4 0Z");
+
+    result
+      .append("div")
+      .attr("class", "gantt-tooltip-content")
+      .style("margin-top", "5px")
+      .style("white-space", "nowrap");
+    return result;
+  }
+
   private loadBars() {
     const referenceToGantt = this;
     const pannableSvg = this.pannableSvg; //d3.select(this.container).select("svg.bars")
@@ -278,6 +335,35 @@ export class Gantt<T> {
       .select(".ganttBars")
       .selectAll<SVGGElement, GanttBar<T>>("g")
       .remove();
+
+    const showTooltip = (ev: any, d: GanttBar<T>) => {
+      if (!this.onTooltip) return;
+      this.tooltip.style("visibility", "visible");
+      this.tooltip.selectAll().remove();
+
+      const el = this.onTooltip(d);
+      ReactDOM.render(
+        el,
+        this.tooltip.selectChild<HTMLElement>(".gantt-tooltip-content").node()
+      );
+
+      const wBox = d3
+        .select<HTMLElement, any>("body")
+        .node()
+        ?.getBoundingClientRect();
+      const bBox: DOMRect = ev.currentTarget.getBoundingClientRect();
+      const w = this.tooltip.node()?.getBoundingClientRect().width ?? 0;
+      const hw = w / 2;
+      const left = Math.min(
+        Math.max(0, bBox.left + this.barWidth(d) / 2 - hw),
+        (wBox?.width ?? Number.MAX_VALUE) - w
+      );
+      this.tooltip
+        .style("left", `${left}px`)
+        .style("top", `${bBox.top + d.height}px`);
+
+      this.tooltip.select(".gantt-arrow").style("left", `${hw - 4}px`);
+    };
 
     const svgElementBars = pannableSvg
       .select(".ganttBars")
@@ -304,6 +390,8 @@ export class Gantt<T> {
             referenceToGantt.gOnEndDrag(this, event, d);
           })
       )
+      .on("mouseover", showTooltip)
+      .on("mouseout", this.hideTooltip)
       .attr("class", "ganttBar")
       .attr("cursor", this.cursorForBar);
 
@@ -315,13 +403,14 @@ export class Gantt<T> {
     bars
       .filter((bar: GanttBar<T>) => bar.draggable)
       .append("rect")
-      .attr("class", "ganttBarDraggableIndicator");
+      .attr("class", "ganttBarHandle move")
+      .attr("width", (bar: GanttBar<T>) => this.options.bars.moveAnchor.width);
 
     bars
       .filter((bar: GanttBar<T>) => bar.resizeble)
       .append("rect")
-      .attr("class", "ganttBarHandle")
-      .attr("width", this.resizeAnchorWidth)
+      .attr("class", "ganttBarHandle resize")
+      .attr("width", this.options.bars.resizeAnchor.width)
       .call(
         d3drag
           .drag<any, GanttBar<T>>()
@@ -387,7 +476,11 @@ export class Gantt<T> {
     this.options = options ?? DEFAULT_OPTIONS;
 
     const parent = d3.select(container).append("div");
+    addEventListener("scroll", this.onScroll, true);
 
+    const parentBox = parent.node()?.getBoundingClientRect();
+
+    const parentWidth = parentBox?.width;
     // svg.append("pattern")
     //     .attr("id", "grabPattern")
     //     .attr("patternUnits", "userSpaceOnUse")
@@ -397,6 +490,21 @@ export class Gantt<T> {
     //     .style("stroke", "black")
     //     .style("opacity", .3)
     //     .style("stroke-width", "1")
+
+    parent
+      .append("svg")
+      .attr("class", "gantt-top-line")
+      .attr("width", parentWidth ?? 2000)
+      .attr("height", this.options.timebarHeight)
+      .style("position", "absolute")
+      .style("pointer-events", "none")
+      .style("z-index", 2)
+      .append("line")
+      .attr("class", "gantt-top-line")
+      .attr("x1", 0)
+      .attr("x2", this.options.width)
+      .attr("y1", this.options.timebarHeight)
+      .attr("y2", this.options.timebarHeight);
 
     this.headerSvg = parent
       .append("svg")
@@ -419,6 +527,8 @@ export class Gantt<T> {
       .attr("width", this.options.width)
       .style("display", "block");
 
+    this.tooltip = this.makeTooltip(d3.select("body"));
+
     this.pannableSvg.on("click", (e: { target: any }) => {
       console.log("clic! " + d3.select<any, GanttBar<T>>(e.target).datum().id);
     });
@@ -431,6 +541,14 @@ export class Gantt<T> {
     // Initialize the scroll offset after yielding the chart to the DOM.
     //this.body.node()!.scrollBy(this.options.width, 0);
   }
+
+  private onScroll = (ev: Event) => {
+    this.hideTooltip();
+  };
+
+  private hideTooltip = () => {
+    //this.tooltip.style("visibility", "hidden");
+  };
 
   private cursorForBar = (bar: GanttBar<T>) =>
     bar.draggable ? "grab" : "default";
@@ -511,70 +629,111 @@ export class Gantt<T> {
     const roundness = this.options.bars.roundness;
     bars
       .selectChild(".ganttBarRect")
-      .attr("rx", (bar: GanttBar<T>) => bar.height * roundness)
-      .attr("ry", (bar: GanttBar<T>) => bar.height * roundness)
+      .attr("rx", () => roundness ?? null)
+      .attr("ry", () => roundness ?? null)
       .attr("width", this.barWidth)
-      .attr("height", (bar: GanttBar<T>) => bar.height)
-      .style("opacity", (bar: GanttBar<T>) => bar.opacity)
-      .attr("fill", (bar: GanttBar<T>) => bar.barColor);
+      .attr("height", (bar) => bar.height)
+      .style("opacity", (bar) => bar.opacity ?? null)
+      .attr("fill", (bar) => bar.barColor ?? null);
+
+    const textWidth = (bar: GanttBar<T>) => {
+      return (
+        this.barWidth(bar) -
+        this.options.bars.paddingLeft -
+        this.options.bars.paddingRight
+      );
+    };
+
+    function writeText(this: any, bar: GanttBar<T>, text: string) {
+      const width = textWidth(bar);
+      const self = d3.select(this);
+      self.text(text);
+      let textLength = self.node().getComputedTextLength();
+      while (textLength > width && text.length > 0) {
+        text = text.slice(0, -1);
+        if (text.length === 0) self.text("");
+        else self.text(text + "...");
+        textLength = self.node().getComputedTextLength();
+      }
+    }
 
     bars
       .selectChild(".ganttBarCaption.line-1")
-      .attr("x", (bar: GanttBar<T>) => this.barWidth(bar) / 2)
-      .attr("y", (bar: GanttBar<T>) => bar.height / 4)
-      .attr("text-anchor", "middle")
-      .attr("dominant-baseline", "central")
+      .attr("x", (bar: GanttBar<T>) => this.options.bars.paddingLeft)
+      .attr("y", (bar: GanttBar<T>) => this.options.bars.paddingTop)
+      .attr("text-anchor", "left")
+      .attr("dominant-baseline", "hanging")
       .style("font-family", this.options.bars.fontFamily)
       .style("font-size", this.options.bars.fontSizes[0])
       .attr("cursor", "inherited")
-      .text(function (bar: GanttBar<T>) {
-        return bar.captions[0];
+      .each(function (bar: GanttBar<T>) {
+        writeText.call(this, bar, bar.captions[0]);
       });
 
     bars
       .selectChild(".ganttBarCaption.line-2")
-      .attr("x", (bar: GanttBar<T>) => this.barWidth(bar) / 2)
-      .attr("y", (bar: GanttBar<T>) => (bar.height / 4) * 3)
-      .attr("text-anchor", "middle")
-      .attr("dominant-baseline", "central")
+      .attr("x", (bar: GanttBar<T>) => this.options.bars.paddingLeft)
+      .attr(
+        "y",
+        (bar: GanttBar<T>) => bar.height - this.options.bars.paddingBottom
+      )
+      .attr("text-anchor", "left")
+      .attr("dominant-baseline", "text-bottom")
       .style("font-family", this.options.bars.fontFamily)
       .style(
         "font-size",
         this.options.bars.fontSizes[1] ?? this.options.bars.fontSizes[0]
       )
       .attr("cursor", "inherited")
-      .text(function (bar: GanttBar<T>) {
-        return bar.captions[1];
+      .each(function (bar: GanttBar<T>) {
+        writeText.call(this, bar, bar.captions[1]);
       });
 
     bars
-      .selectChild(".ganttBarHandle")
+      .selectChild(".ganttBarHandle.resize")
       .attr(
         "x",
-        (bar: GanttBar<T>) => this.barWidth(bar) - this.resizeAnchorWidth
+        (bar) =>
+          this.barWidth(bar) -
+          this.options.bars.resizeAnchor.width -
+          this.options.bars.resizeAnchor.padding
       )
-      .attr("y", (bar: GanttBar<T>) => (bar.height - bar.height / 3) / 2)
-      .attr("height", (bar: GanttBar<T>) => bar.height / 3)
+      .attr(
+        "y",
+        (bar) => (bar.height - this.options.bars.resizeAnchor.height) / 2
+      )
+      .attr("rx", () => this.options.bars.resizeAnchor.roundness ?? null)
+      .attr("ry", () => this.options.bars.resizeAnchor.roundness ?? null)
+      .attr("height", () => this.options.bars.resizeAnchor.height)
       .attr("cursor", "e-resize")
-      .style("opacity", (bar: GanttBar<T>) => bar.opacity);
+      .style("opacity", (bar) => bar.opacity ?? null);
 
     bars
-      .selectChild(".ganttBarDraggableIndicator")
-      .attr("width", (bar: GanttBar<T>) => bar.height * roundness)
-      .attr("height", (bar: GanttBar<T>) => bar.height * (1 - 2 * roundness))
-      .attr("rx", (bar: GanttBar<T>) => (bar.height * roundness) / 2)
-      .attr("ry", (bar: GanttBar<T>) => (bar.height * roundness) / 2)
+      .selectChild(".ganttBarHandle.move")
+      .attr("height", (bar: GanttBar<T>) => this.options.bars.moveAnchor.height)
+      .attr("rx", () => this.options.bars.moveAnchor.roundness ?? null)
+      .attr("ry", () => this.options.bars.moveAnchor.roundness ?? null)
       .attr("fill", (bar: GanttBar<T>) => "black")
-      .attr("x", (bar: GanttBar<T>) => bar.height * roundness)
-      .attr("y", (bar: GanttBar<T>) => bar.height * roundness)
-      .style("opacity", (bar: GanttBar<T>) => 0.2)
-      .attr("visibility", (bar: GanttBar<T>) =>
-        this.barWidth(bar) > 3 * bar.height * roundness ? "visible" : "hidden"
+      .attr("x", () => this.options.bars.moveAnchor.padding)
+      .attr(
+        "y",
+        (bar) => (bar.height - this.options.bars.moveAnchor.height) / 2
+      )
+      .style("opacity", (bar) => bar.opacity ?? null)
+      .attr("visibility", (bar) =>
+        this.barWidth(bar) >
+        this.options.bars.resizeAnchor.padding +
+          this.options.bars.resizeAnchor.width +
+          this.options.bars.moveAnchor.padding +
+          this.options.bars.moveAnchor.width +
+          10
+          ? "visible"
+          : "hidden"
       );
   };
 
   private classesForBar = (bar: GanttBar<T>) => {
-    const result = ["ganttBar", ...(bar.classes ?? [])];
+    const result = ["ganttBar", ...(bar.classes ?? []).filter((e) => !!e)];
     if (bar.id === this.draggedBarId) result.push(draggingClass);
     if (bar.id === this.resizingBarId) result.push(resizingClass);
     return result;
