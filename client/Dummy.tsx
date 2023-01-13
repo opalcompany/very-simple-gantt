@@ -1,6 +1,7 @@
 import Button from "@restart/ui/esm/Button";
 import * as d3 from "d3";
 import React, { useEffect, useRef, useState } from "react";
+import ReactDOM from "react-dom";
 import { DEFAULT_OPTIONS, Gantt, GanttBar, GanttRow } from "./components";
 
 const dateTimeReviver = function (key: any, value: any) {
@@ -225,7 +226,8 @@ const GanttViewer: React.FC<GanttViewerProps> = (props) => {
     gantt.onEndDrag = onEndDrag;
     gantt.onDrag = onDrag;
     gantt.onResize = onResize;
-    gantt.onTooltip = (bar) => <div>ciao</div>;
+    gantt.onTooltip = (bar, tooltipNode) =>
+      ReactDOM.render(<div>ciao</div>, tooltipNode);
     setGantt(gantt);
   }, []); //ony once
 

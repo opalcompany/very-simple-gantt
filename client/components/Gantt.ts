@@ -18,7 +18,6 @@
 
 import * as d3 from "d3";
 import * as d3drag from "d3-drag";
-import ReactDOM from "react-dom";
 import { GanttBar } from "./GanttBar";
 import { GanttRow } from "./GanttRow";
 //import { Margins } from './Margins';
@@ -124,7 +123,10 @@ export class Gantt<T> {
 
   // must return false if resizing is not allowed for the bar, true if allowed
   public onStartResize?: (resizedBar: GanttBar<T>) => boolean;
-  public onTooltip?: (bar: GanttBar<T>) => JSX.Element;
+  public onTooltip?: (
+    bar: GanttBar<T>,
+    tooltipNode: HTMLElement | null
+  ) => void;
   public onResize?: (
     resizedBar: GanttBar<T>,
     newEndTime: Date,
@@ -341,11 +343,10 @@ export class Gantt<T> {
       this.tooltip.style("visibility", "visible");
       this.tooltip.selectAll().remove();
 
-      const el = this.onTooltip(d);
-      ReactDOM.render(
-        el,
-        this.tooltip.selectChild<HTMLElement>(".gantt-tooltip-content").node()
-      );
+      const tooltipNode = this.tooltip
+        .selectChild<HTMLElement>(".gantt-tooltip-content")
+        .node();
+      this.onTooltip(d, tooltipNode);
 
       const wBox = d3
         .select<HTMLElement, any>("body")
