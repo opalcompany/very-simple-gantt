@@ -59,6 +59,7 @@ export interface GanttOptions {
     roundness?: number;
   };
   timebar: { height: number; ticks: number };
+  debugAvoidHideTooltip?: boolean;
 }
 
 export const DEFAULT_OPTIONS: GanttOptions = {
@@ -550,7 +551,8 @@ export class Gantt<T> {
   };
 
   private hideTooltip = () => {
-    //this.tooltip.style("visibility", "hidden");
+    this.options.debugAvoidHideTooltip ||
+      this.tooltip.style("visibility", "hidden");
   };
 
   private cursorForBar = (bar: GanttBar<T>) =>

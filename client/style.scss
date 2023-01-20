@@ -46,3 +46,11 @@ line.gantt-top-line {
 .timeBar > .domain {
   stroke: none !important;
 }
+
+.ganttBarResizing {
+  opacity: 0.3;
+}
+
+.ganttBarDragging {
+  opacity: 0.4;
+}
