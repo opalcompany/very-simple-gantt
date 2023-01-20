@@ -65,6 +65,7 @@ export const DEFAULT_OPTIONS: GanttOptions = {
   headers: {
     width: 100,
     fontSize: 18,
+    textAnchor: "middle",
     textX: (opts) => opts.headers.width / 2,
     textY: (opts, i) =>
       i * opts.rowHeight + opts.timebarHeight + opts.rowHeight / 2,
@@ -459,16 +460,17 @@ export class Gantt<T> {
       .attr("fill", (row: GanttRow) => row.color ?? null)
       .attr("stroke", (row: GanttRow) => row.borderColor ?? null);
 
-    svgElementsHeader
+    const text = svgElementsHeader
       .append("text")
       .attr("x", () => this.options.headers.textX(this.options))
       .attr("y", (_, i: number) => this.options.headers.textY(this.options, i))
-      .style("font-family", this.options.headers.fontFamily ?? false)
-      .style("font-size", this.options.headers.fontSize ?? false)
-      .style("text-anchor", this.options.headers.textAnchor ?? false)
       .text(function (row: GanttRow) {
         return row.caption;
       });
+
+    applyStyle(text, "font-family", this.options.headers.fontFamily);
+    applyStyle(text, "font-size", this.options.headers.fontSize);
+    applyStyle(text, "text-anchor", this.options.headers.textAnchor);
   };
 
   constructor(container: HTMLElement, options?: GanttOptions) {
@@ -738,4 +740,14 @@ export class Gantt<T> {
     if (bar.id === this.resizingBarId) result.push(resizingClass);
     return result;
   };
+}
+
+function applyStyle(
+  it: d3.Selection<any, any, any, any>,
+  name: string,
+  value?: string | number | boolean,
+  priority?: null | "important"
+) {
+  value && it.style(name, value, priority);
+  return it;
 }
