@@ -31,8 +31,11 @@ export interface GanttOptions {
   width: number;
   headers: {
     width: number;
-    fontFamily: string;
-    fontSize: number;
+    fontFamily?: string;
+    textAnchor?: string;
+    fontSize?: number;
+    textX: (options: GanttOptions) => number;
+    textY: (options: GanttOptions, i: number) => number;
   };
   bars: {
     resizeAnchor: {
@@ -61,8 +64,10 @@ export interface GanttOptions {
 export const DEFAULT_OPTIONS: GanttOptions = {
   headers: {
     width: 100,
-    fontFamily: "",
     fontSize: 18,
+    textX: (opts) => opts.headers.width / 2,
+    textY: (opts, i) =>
+      i * opts.rowHeight + opts.timebarHeight + opts.rowHeight / 2,
   },
   rowHeight: 70,
   width: 2000,
@@ -456,17 +461,11 @@ export class Gantt<T> {
 
     svgElementsHeader
       .append("text")
-      .attr("x", () => this.options.headers.width / 2)
-      .attr(
-        "y",
-        (_, i: number) =>
-          i * this.options.rowHeight +
-          this.options.timebarHeight +
-          this.options.rowHeight / 2
-      )
-      .style("font-family", this.options.headers.fontFamily)
-      .style("font-size", this.options.headers.fontSize)
-      .style("text-anchor", "middle")
+      .attr("x", () => this.options.headers.textX(this.options))
+      .attr("y", (_, i: number) => this.options.headers.textY(this.options, i))
+      .style("font-family", this.options.headers.fontFamily ?? false)
+      .style("font-size", this.options.headers.fontSize ?? false)
+      .style("text-anchor", this.options.headers.textAnchor ?? false)
       .text(function (row: GanttRow) {
         return row.caption;
       });
