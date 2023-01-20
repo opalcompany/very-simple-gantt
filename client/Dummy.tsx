@@ -124,7 +124,11 @@ const GanttViewer: React.FC<GanttViewerProps> = (props) => {
     var gantt = new Gantt<GanttData>(d3Container.current!, {
       ...DEFAULT_OPTIONS,
       rowHeight: 60,
-      headers: { ...DEFAULT_OPTIONS.headers, width: 200, fontSize: undefined },
+      headers: {
+        ...DEFAULT_OPTIONS.headers,
+        width: 200,
+        style: { "font-size": 10 },
+      },
       bars: {
         ...DEFAULT_OPTIONS.bars,
         fontSizes: [11, 11],

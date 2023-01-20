@@ -31,9 +31,9 @@ export interface GanttOptions {
   width: number;
   headers: {
     width: number;
-    fontFamily?: string;
-    textAnchor?: string;
-    fontSize?: number;
+    style: {
+      [k: string]: any;
+    };
     textX: (options: GanttOptions) => number;
     textY: (options: GanttOptions, i: number) => number;
   };
@@ -64,8 +64,10 @@ export interface GanttOptions {
 export const DEFAULT_OPTIONS: GanttOptions = {
   headers: {
     width: 100,
-    fontSize: 18,
-    textAnchor: "middle",
+    style: {
+      "font-size": 18,
+      "text-anchor": "middle",
+    },
     textX: (opts) => opts.headers.width / 2,
     textY: (opts, i) =>
       i * opts.rowHeight + opts.timebar.height + opts.rowHeight / 2,
@@ -467,10 +469,9 @@ export class Gantt<T> {
       .text(function (row: GanttRow) {
         return row.caption;
       });
-
-    applyStyle(text, "font-family", this.options.headers.fontFamily);
-    applyStyle(text, "font-size", this.options.headers.fontSize);
-    applyStyle(text, "text-anchor", this.options.headers.textAnchor);
+    Object.entries(this.options.headers.style).forEach(([k, v]) =>
+      text.style(k, v)
+    );
   };
 
   constructor(container: HTMLElement, options?: GanttOptions) {
