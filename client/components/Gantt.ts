@@ -58,7 +58,7 @@ export interface GanttOptions {
     fontSizes: number[];
     roundness?: number;
   };
-  timebarHeight: number;
+  timebar: { height: number; ticks: number };
 }
 
 export const DEFAULT_OPTIONS: GanttOptions = {
@@ -68,11 +68,11 @@ export const DEFAULT_OPTIONS: GanttOptions = {
     textAnchor: "middle",
     textX: (opts) => opts.headers.width / 2,
     textY: (opts, i) =>
-      i * opts.rowHeight + opts.timebarHeight + opts.rowHeight / 2,
+      i * opts.rowHeight + opts.timebar.height + opts.rowHeight / 2,
   },
   rowHeight: 70,
   width: 2000,
-  timebarHeight: 30,
+  timebar: { height: 30, ticks: 30 },
   bars: {
     paddingLeft: 20,
     paddingRight: 20,
@@ -147,7 +147,7 @@ export class Gantt<T> {
 
   private height(): number {
     return (
-      this.options.rowHeight * this._rows.length + this.options.timebarHeight
+      this.options.rowHeight * this._rows.length + this.options.timebar.height
     );
   }
 
@@ -162,7 +162,7 @@ export class Gantt<T> {
   private calculateBarY(bar: GanttBar<T>): number {
     return (
       bar.row * this.options.rowHeight +
-      this.options.timebarHeight +
+      this.options.timebar.height +
       (this.options.rowHeight - bar.height) / 2
     );
   }
@@ -335,8 +335,8 @@ export class Gantt<T> {
         .append("line")
         .attr("x1", this.options.headers.width)
         .attr("x2", this.options.width)
-        .attr("y1", this.options.timebarHeight + i * this.options.rowHeight)
-        .attr("y2", this.options.timebarHeight + i * this.options.rowHeight);
+        .attr("y1", this.options.timebar.height + i * this.options.rowHeight)
+        .attr("y2", this.options.timebar.height + i * this.options.rowHeight);
     }
 
     pannableSvg
@@ -453,7 +453,7 @@ export class Gantt<T> {
       .attr(
         "y",
         (_, i: number) =>
-          i * this.options.rowHeight + this.options.timebarHeight
+          i * this.options.rowHeight + this.options.timebar.height
       )
       .attr("width", () => this.options.headers.width)
       .attr("height", () => this.options.rowHeight)
@@ -497,7 +497,7 @@ export class Gantt<T> {
       .append("svg")
       .attr("class", "gantt-top-line")
       .attr("width", parentWidth ?? 2000)
-      .attr("height", this.options.timebarHeight)
+      .attr("height", this.options.timebar.height)
       .style("position", "absolute")
       .style("pointer-events", "none")
       .style("z-index", 2)
@@ -505,8 +505,8 @@ export class Gantt<T> {
       .attr("class", "gantt-top-line")
       .attr("x1", 0)
       .attr("x2", this.options.width)
-      .attr("y1", this.options.timebarHeight)
-      .attr("y2", this.options.timebarHeight);
+      .attr("y1", this.options.timebar.height)
+      .attr("y2", this.options.timebar.height);
 
     this.headerSvg = parent
       .append("svg")
@@ -596,13 +596,13 @@ export class Gantt<T> {
     this.xAxis = d3
       .axisTop<Date>(this.scale)
       //.ticks(d3.timeDay)
-      .ticks(30);
+      .ticks(this.options.timebar.ticks);
     //.tickFormat(d=>d3.timeFormat("%B %Y")(d));
     this.pannableSvg
       .select<SVGGElement>("g.timeBar")
       .attr(
         "transform",
-        `translate(${this.options.headers.width}, ${this.options.timebarHeight})`
+        `translate(${this.options.headers.width}, ${this.options.timebar.height})`
       ) // This controls the vertical position of the Axis
       .call(this.xAxis);
   };
