@@ -479,7 +479,10 @@ export class Gantt<T> {
     this.container = container;
     this.options = options ?? DEFAULT_OPTIONS;
 
-    const parent = d3.select(container).append("div");
+    const parent = d3
+      .select(container)
+      .append("div")
+      .style("position", "relative");
     addEventListener("scroll", this.onScroll, true);
 
     const parentBox = parent.node()?.getBoundingClientRect();
