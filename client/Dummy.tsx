@@ -105,12 +105,12 @@ export const Dummy: React.FC = () => {
 interface GanttViewerProps {
   startDate: Date;
   endDate: Date;
-  rows: GanttRow[];
+  rows: GanttRow<string>[];
   bars: GanttBar<GanttData>[];
 }
 
 const GanttViewer: React.FC<GanttViewerProps> = (props) => {
-  var [gantt, setGantt] = useState<Gantt<GanttData>>();
+  var [gantt, setGantt] = useState<Gantt<string, GanttData>>();
 
   /* The useRef Hook creates a variable that "holds on" to a value across rendering
        passes. In this case it will hold our component's SVG DOM element. It's
@@ -121,7 +121,7 @@ const GanttViewer: React.FC<GanttViewerProps> = (props) => {
        for instance inserting elements into the DOM using D3 */
   useEffect(() => {
     console.log("E1");
-    var gantt = new Gantt<GanttData>(d3Container.current!, {
+    var gantt = new Gantt<string, GanttData>(d3Container.current!, {
       ...DEFAULT_OPTIONS,
       rowHeight: 60,
       headers: {
@@ -246,15 +246,16 @@ const GanttViewer: React.FC<GanttViewerProps> = (props) => {
 };
 
 function makeOne(startDate: Date) {
-  const rows: GanttRow[] = [];
+  const rows: GanttRow<string>[] = [];
   const rowNum = 5 + (Math.random() < 0.5 ? 1 : 0);
 
   for (let i = 0; i < rowNum; i++) {
-    let r: GanttRow = {
+    let r: GanttRow<string> = {
       row: i,
       caption: "Machine " + i,
       borderColor: "#006600",
       color: "#00cc00",
+      data: i.toString(),
     };
     rows.push(r);
   }

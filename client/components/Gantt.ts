@@ -91,13 +91,13 @@ export const DEFAULT_OPTIONS: GanttOptions = {
 const resizingClass = "ganttBarResizing";
 const draggingClass = "ganttBarDragging";
 
-export class Gantt<T> {
+export class Gantt<R, T> {
   // scales
   private scale!: d3.ScaleTime<number, number, never>;
   private xAxis!: d3.Axis<Date>;
   // data
   private bars: GanttBar<T>[] = [];
-  private _rows: GanttRow[] = [];
+  private _rows: GanttRow<R>[] = [];
   private tooltip: d3.Selection<HTMLDivElement, unknown, any, any>;
 
   public get rows() {
@@ -460,14 +460,14 @@ export class Gantt<T> {
       )
       .attr("width", () => this.options.headers.width)
       .attr("height", () => this.options.rowHeight)
-      .attr("fill", (row: GanttRow) => row.color ?? null)
-      .attr("stroke", (row: GanttRow) => row.borderColor ?? null);
+      .attr("fill", (row: GanttRow<R>) => row.color ?? null)
+      .attr("stroke", (row: GanttRow<R>) => row.borderColor ?? null);
 
     const text = svgElementsHeader
       .append("text")
       .attr("x", () => this.options.headers.textX(this.options))
       .attr("y", (_, i: number) => this.options.headers.textY(this.options, i))
-      .text(function (row: GanttRow) {
+      .text(function (row: GanttRow<R>) {
         return row.caption;
       });
     Object.entries(this.options.headers.style).forEach(([k, v]) =>
@@ -577,7 +577,7 @@ export class Gantt<T> {
     });
   }
 
-  reload = (rows: GanttRow[], bars: GanttBar<T>[]) => {
+  reload = (rows: GanttRow<R>[], bars: GanttBar<T>[]) => {
     this._rows = rows;
     this.bars = bars;
     this.loadHeaders();
