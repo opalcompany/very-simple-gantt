@@ -3,3 +3,4 @@
 /node_modules
 .vscode
 very-simple-gantt-*.tgz
+.metals
