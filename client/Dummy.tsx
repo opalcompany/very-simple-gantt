@@ -146,6 +146,9 @@ const GanttViewer: React.FC<GanttViewerProps> = (props) => {
       newStartTime: Date,
       bars: GanttBar<GanttData>[]
     ): void => {
+      bars = JSON.parse(JSON.stringify(bars), (key, v) =>
+        key.endsWith("Time") ? new Date(Date.parse(v)) : v
+      ); //make a deep clone
       const draggedBarData = bar.data as GanttData;
       console.log(
         "dragging experiment " +
@@ -191,6 +194,9 @@ const GanttViewer: React.FC<GanttViewerProps> = (props) => {
       newEndTime: Date,
       bars: GanttBar<GanttData>[]
     ): void => {
+      bars = JSON.parse(JSON.stringify(bars), (key, v) =>
+        key.endsWith("Time") ? new Date(Date.parse(v)) : v
+      ); //make a deep clone
       //const newBars = JSON.parse(JSON.stringify(bars), dateTimeReviver) as GanttBar[]
 
       const resizedBarData = resizedBar.data as GanttData;
@@ -249,7 +255,7 @@ function makeOne(startDate: Date) {
   const rows: GanttRow<string>[] = [];
   const rowNum = 5 + (Math.random() < 0.5 ? 1 : 0);
 
-  for (let i = 0; i < rowNum; i++) {
+  for (let i = 0; i < 1; i++) {
     let r: GanttRow<string> = {
       row: i,
       caption: "Machine " + i,
@@ -263,7 +269,7 @@ function makeOne(startDate: Date) {
   let expStart = startDate;
 
   const bars: GanttBar<GanttData>[] = [];
-  for (let e = 1; e <= 2; e++) {
+  for (let e = 1; e <= 1; e++) {
     let dateLimit = expStart;
 
     for (let r = 0; r < rowNum; r++) {

@@ -213,7 +213,6 @@ export class Gantt<R, T> {
         const clonedBars: GanttBar<T>[] = [];
         this.cloneBars(this.bars, clonedBars);
         this.onResize(bar, newEndTime, clonedBars);
-        this.assignBars(clonedBars, this.bars);
       } else {
         bar.endTime = newEndTime;
         this.doUpdateBars(this.bars);
@@ -268,7 +267,6 @@ export class Gantt<R, T> {
         const clonedBars: GanttBar<T>[] = [];
         this.cloneBars(this.bars, clonedBars);
         this.onDrag(bar, newStartTime, clonedBars);
-        this.assignBars(clonedBars, this.bars);
       } else {
         bar.startTime = newStartTime;
         bar.endTime = newEndTime;
@@ -384,6 +382,7 @@ export class Gantt<R, T> {
       .on("click", (e: { target: any }, bar: GanttBar<T>) => {
         d3.select("#" + this.idToValidDomId(bar.id)).lower();
       })
+      .on(".drag", null)
       .call(
         d3drag
           .drag<any, GanttBar<T>>()
