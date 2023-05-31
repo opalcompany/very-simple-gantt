@@ -102,12 +102,12 @@ export const Dummy: React.FC = () => {
   );
 };
 
-interface GanttViewerProps {
+type GanttViewerProps = {
   startDate: Date;
   endDate: Date;
   rows: GanttRow<string>[];
   bars: GanttBar<GanttData>[];
-}
+};
 
 const GanttViewer: React.FC<GanttViewerProps> = (props) => {
   var [gantt, setGantt] = useState<Gantt<string, GanttData>>();
@@ -246,6 +246,14 @@ const GanttViewer: React.FC<GanttViewerProps> = (props) => {
     gantt?.setTimeRange(props.startDate, props.endDate);
     gantt?.reload(props.rows, props.bars);
     console.log(props.bars[0]);
+    gantt?.setDecorations([
+      { type: "line", time: props.bars[0].startTime, class: "line1" },
+      {
+        type: "line",
+        time: new Date(props.bars[0].startTime.getTime() + 1000 * 3600 * 6),
+        class: "line2",
+      },
+    ]);
   }, [props, gantt]);
 
   return <div className="very-simple-gantt" ref={d3Container} />;

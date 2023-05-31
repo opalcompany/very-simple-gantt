@@ -26,7 +26,11 @@ import "./style.scss";
 
 export { GanttBar, GanttRow };
 
-export interface GanttOptions {
+export type Decoration = LineDecoration;
+export type LineDecoration = { type: "line"; time: Date; class?: string };
+export type DecorationType = Decoration["type"];
+
+export type GanttOptions = {
   rowHeight: number;
   width: number;
   headers: {
@@ -60,7 +64,7 @@ export interface GanttOptions {
   };
   timebar: { height: number; ticks: number };
   debugAvoidHideTooltip?: boolean;
-}
+};
 
 export const DEFAULT_OPTIONS: GanttOptions = {
   headers: {
@@ -91,6 +95,7 @@ export const DEFAULT_OPTIONS: GanttOptions = {
 const resizingClass = "ganttBarResizing";
 const draggingClass = "ganttBarDragging";
 
+const DECORATION_CLS = "decoration";
 export class Gantt<R, T> {
   // scales
   private scale!: d3.ScaleTime<number, number, never>;
@@ -99,6 +104,7 @@ export class Gantt<R, T> {
   private bars: GanttBar<T>[] = [];
   private _rows: GanttRow<R>[] = [];
   private tooltip: d3.Selection<HTMLDivElement, unknown, any, any>;
+  private _decorations: LineDecoration[] = [];
 
   public get rows() {
     return this._rows;
@@ -159,15 +165,19 @@ export class Gantt<R, T> {
   }
 
   private calculateBarX(bar: GanttBar<T>, x: number): number {
-    return this.convertGanttXToContainerX(x + this.scale(bar.startTime));
+    const time = bar.startTime;
+    return this.xForTime(x, time);
+  }
+
+  private xForTime(x: number, time: Date): number {
+    return this.convertGanttXToContainerX(x + this.scale(time));
   }
 
   private calculateBarY(bar: GanttBar<T>): number {
-    return (
+    const y =
       bar.row * this.options.rowHeight +
-      this.options.timebar.height +
-      (this.options.rowHeight - bar.height) / 2
-    );
+      (this.options.rowHeight - bar.height) / 2;
+    return this.yFor(y);
   }
 
   private gTransform = (bar: GanttBar<T>, x: number) => {
@@ -180,6 +190,10 @@ export class Gantt<R, T> {
     //alternative is: return '[id="' + id + '"]'
     return "g" + id.replace(/[ ]/g, "_");
   };
+
+  private yFor(y: number): number {
+    return this.options.timebar.height + y;
+  }
 
   private gOnStartResize(el: any, event: any, bar: GanttBar<T>): any {
     console.log("start resize: " + bar.id + " " + bar.resizeble);
@@ -324,14 +338,14 @@ export class Gantt<R, T> {
   }
 
   private loadBars() {
-    const referenceToGantt = this;
+    const self = this;
     const pannableSvg = this.pannableSvg; //d3.select(this.container).select("svg.bars")
     pannableSvg.attr("height", this.height());
-    const svgElementHorizontalLines = this.pannableSvg
+    const svgElementHorizontalLines = self.pannableSvg
       .append("g")
-      .attr("stroke", this.horizontalLinesColor);
+      .attr("stroke", self.horizontalLinesColor);
 
-    for (let i = 0; i < this._rows.length; i++) {
+    for (let i = 0; i < self._rows.length; i++) {
       svgElementHorizontalLines
         .append("line")
         .attr("x1", this.options.headers.width)
@@ -390,13 +404,13 @@ export class Gantt<R, T> {
           // event is the d3 event
           // d is the datum aka GanttBar
           .on("start", function (event, d) {
-            referenceToGantt.gOnStartDrag(this, event, d);
+            self.gOnStartDrag(this, event, d);
           })
           .on("drag", function (event, d) {
-            referenceToGantt.gOnDrag(this, event, d);
+            self.gOnDrag(this, event, d);
           })
           .on("end", function (event, d) {
-            referenceToGantt.gOnEndDrag(this, event, d);
+            self.gOnEndDrag(this, event, d);
           })
       )
       .on("mouseover", showTooltip)
@@ -427,20 +441,90 @@ export class Gantt<R, T> {
           // event is the d3 event
           // d is the datum aka GanttBar
           .on("start", function (event, d) {
-            referenceToGantt.gOnStartResize(d3.select(this), event, d);
+            self.gOnStartResize(d3.select(this), event, d);
           })
           .on("drag", function (event, d) {
-            referenceToGantt.gOnResize(d3.select(this), event, d);
+            self.gOnResize(d3.select(this), event, d);
           })
           .on("end", function (event, d) {
-            referenceToGantt.gOnEndResize(d3.select(this), event, d);
+            self.gOnEndResize(d3.select(this), event, d);
           })
       );
 
     this.doUpdateBars(this.bars);
   }
 
-  private buildHeaders = () => {
+  private onScroll = (ev: Event) => {
+    this.hideTooltip();
+  };
+
+  private hideTooltip = () => {
+    this.options.debugAvoidHideTooltip ||
+      this.tooltip.style("visibility", "hidden");
+  };
+
+  private cursorForBar = (bar: GanttBar<T>) =>
+    bar.draggable ? "grab" : "default";
+
+  public assignBars(sourceBars: GanttBar<T>[], destinationBars: GanttBar<T>[]) {
+    sourceBars.forEach((b) => {
+      const destBar = destinationBars.find((ba) => ba.id === b.id);
+      if (destBar) {
+        Object.assign(destBar, b);
+      }
+    });
+  }
+
+  cloneBars(sourceBars: GanttBar<T>[], destinationBars: GanttBar<T>[]) {
+    sourceBars.forEach((b) => {
+      const newBar: GanttBar<T> = { ...b };
+      destinationBars.push(newBar);
+    });
+  }
+
+  reload = (rows: GanttRow<R>[], bars: GanttBar<T>[]) => {
+    this._rows = rows;
+    this.bars = bars;
+    this.loadHeaders();
+    this.loadBars();
+  };
+
+  setDecorations = (decorations: Decoration[]) => {
+    this._decorations = decorations;
+    this.loadDecorations();
+  };
+
+  setTimeRange = (startDate: Date, endDate: Date) => {
+    this.startDate = startDate;
+    this.endDate = endDate;
+
+    this.loadTimeBar();
+    this.loadHeaders();
+    this.loadBars();
+    this.loadDecorations();
+  };
+
+  private loadTimeBar = () => {
+    this.scale = d3
+      .scaleTime()
+      .range([0, this.options.width - this.options.headers.width])
+      .domain([this.startDate, this.endDate]);
+
+    this.xAxis = d3
+      .axisTop<Date>(this.scale)
+      //.ticks(d3.timeDay)
+      .ticks(this.options.timebar.ticks);
+    //.tickFormat(d=>d3.timeFormat("%B %Y")(d));
+    this.pannableSvg
+      .select<SVGGElement>("g.timeBar")
+      .attr(
+        "transform",
+        `translate(${this.options.headers.width}, ${this.options.timebar.height})`
+      ) // This controls the vertical position of the Axis
+      .call(this.xAxis);
+  };
+
+  private loadHeaders = () => {
     this.headerSvg.attr("height", this.height());
     this.headerSvg.selectAll("g").remove();
     const svgElementsHeader = this.headerSvg
@@ -542,78 +626,51 @@ export class Gantt<R, T> {
     this.pannableSvg.append("g").attr("class", "timeBar");
 
     this.pannableSvg.append("g").attr("class", "ganttBars");
+    this.pannableSvg.append("g").attr("class", "decorations");
     //yield parent.node();
 
     // Initialize the scroll offset after yielding the chart to the DOM.
     //this.body.node()!.scrollBy(this.options.width, 0);
   }
 
-  private onScroll = (ev: Event) => {
-    this.hideTooltip();
+  private loadDecorations = () => {
+    const self = this;
+    const ds = this.pannableSvg.select(".decorations");
+    ds.selectAll(`.${DECORATION_CLS}`).remove();
+    ds.selectAll(`.${DECORATION_CLS}`)
+      .data(this._decorations)
+      .enter()
+      .each(function (d) {
+        const el = d3.select(this).datum(d);
+        self
+          .decorationFunc(d.type)(el, d)
+          .attr("class", (_d, i, a) =>
+            [d3.select(a[i]).attr("class"), DECORATION_CLS].join(" ")
+          );
+      });
   };
 
-  private hideTooltip = () => {
-    this.options.debugAvoidHideTooltip ||
-      this.tooltip.style("visibility", "hidden");
+  private decorationFunc = (t: DecorationType) => {
+    switch (t) {
+      case "line":
+        return this.lineDecorationFunc;
+      default:
+        throw new Error("Missing func for decoration type: " + t);
+    }
   };
 
-  private cursorForBar = (bar: GanttBar<T>) =>
-    bar.draggable ? "grab" : "default";
-
-  public assignBars(sourceBars: GanttBar<T>[], destinationBars: GanttBar<T>[]) {
-    sourceBars.forEach((b) => {
-      const destBar = destinationBars.find((ba) => ba.id === b.id);
-      if (destBar) {
-        Object.assign(destBar, b);
-      }
-    });
-  }
-
-  cloneBars(sourceBars: GanttBar<T>[], destinationBars: GanttBar<T>[]) {
-    sourceBars.forEach((b) => {
-      const newBar: GanttBar<T> = { ...b };
-      destinationBars.push(newBar);
-    });
-  }
-
-  reload = (rows: GanttRow<R>[], bars: GanttBar<T>[]) => {
-    this._rows = rows;
-    this.bars = bars;
-    this.loadHeaders();
-    this.loadBars();
-  };
-
-  setTimeRange = (startDate: Date, endDate: Date) => {
-    this.startDate = startDate;
-    this.endDate = endDate;
-
-    this.loadTimeBar();
-    this.loadHeaders();
-    this.loadBars();
-  };
-
-  private loadTimeBar = () => {
-    this.scale = d3
-      .scaleTime()
-      .range([0, this.options.width - this.options.headers.width])
-      .domain([this.startDate, this.endDate]);
-
-    this.xAxis = d3
-      .axisTop<Date>(this.scale)
-      //.ticks(d3.timeDay)
-      .ticks(this.options.timebar.ticks);
-    //.tickFormat(d=>d3.timeFormat("%B %Y")(d));
-    this.pannableSvg
-      .select<SVGGElement>("g.timeBar")
-      .attr(
-        "transform",
-        `translate(${this.options.headers.width}, ${this.options.timebar.height})`
-      ) // This controls the vertical position of the Axis
-      .call(this.xAxis);
-  };
-
-  private loadHeaders = () => {
-    this.buildHeaders();
+  private lineDecorationFunc = <T extends d3.BaseType>(
+    enter: d3.Selection<T, LineDecoration, any, any>,
+    line: LineDecoration
+  ) => {
+    //return enter.append("text").text((l) => "ciao " + l.type);
+    return enter
+      .append("line")
+      .attr("class", ["decoration-line", line.class].join(" "))
+      .attr("x1", this.xForTime(0, line.time))
+      .attr("x2", this.xForTime(0, line.time))
+      .attr("y1", this.yFor(0))
+      .attr("y2", this.yFor(this.options.rowHeight * this.rows.length));
   };
 
   doUpdateBars = (nbars: GanttBar<T>[]) => {
@@ -717,10 +774,10 @@ export class Gantt<R, T> {
 
     bars
       .selectChild(".ganttBarHandle.move")
-      .attr("height", (bar: GanttBar<T>) => this.options.bars.moveAnchor.height)
+      .attr("height", () => this.options.bars.moveAnchor.height)
       .attr("rx", () => this.options.bars.moveAnchor.roundness ?? null)
       .attr("ry", () => this.options.bars.moveAnchor.roundness ?? null)
-      .attr("fill", (bar: GanttBar<T>) => "black")
+      .attr("fill", () => "black")
       .attr("x", () => this.options.bars.moveAnchor.padding)
       .attr(
         "y",

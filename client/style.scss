@@ -54,3 +54,14 @@ line.gantt-top-line {
 .ganttBarDragging {
   opacity: 0.4;
 }
+
+.decoration {
+  &.line1 {
+    stroke: red;
+    stroke-width: 5;
+  }
+  &.line2 {
+    stroke: violet;
+    stroke-width: 2;
+  }
+}
