@@ -414,7 +414,7 @@ export class Gantt<R, T> {
           })
       )
       .on("mouseover", showTooltip)
-      .on("mouseout", this.hideTooltip)
+      .on("mouseout", this._hideTooltip)
       .attr("class", "ganttBar")
       .attr("cursor", this.cursorForBar);
 
@@ -455,12 +455,15 @@ export class Gantt<R, T> {
   }
 
   private onScroll = (ev: Event) => {
-    this.hideTooltip();
+    this._hideTooltip();
   };
 
-  private hideTooltip = () => {
-    this.options.debugAvoidHideTooltip ||
-      this.tooltip.style("visibility", "hidden");
+  hideTooltip = () => {
+    this.tooltip.style("visibility", "hidden");
+  };
+
+  private _hideTooltip = () => {
+    this.options.debugAvoidHideTooltip || this.hideTooltip();
   };
 
   private cursorForBar = (bar: GanttBar<T>) =>
