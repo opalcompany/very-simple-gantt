@@ -41,6 +41,7 @@ export const Dummy: React.FC = () => {
     endDate: new Date(2021, 9, 30),
     ...makeOne(startDate),
   });
+  const delta = ganttData.endDate.getTime() - ganttData.startDate.getTime();
 
   return (
     <>
@@ -59,7 +60,7 @@ export const Dummy: React.FC = () => {
         onClick={() =>
           setGanttData({
             ...ganttData,
-            startDate: new Date(ganttData.startDate.getTime() - MILLIS_IN_DAY),
+            startDate: new Date(ganttData.startDate.getTime() - delta / 2),
           })
         }
       >
@@ -70,7 +71,7 @@ export const Dummy: React.FC = () => {
         onClick={() =>
           setGanttData({
             ...ganttData,
-            startDate: new Date(ganttData.startDate.getTime() + MILLIS_IN_DAY),
+            startDate: new Date(ganttData.startDate.getTime() + delta / 2),
           })
         }
       >
@@ -80,7 +81,7 @@ export const Dummy: React.FC = () => {
         onClick={() =>
           setGanttData({
             ...ganttData,
-            endDate: new Date(ganttData.endDate.getTime() - MILLIS_IN_DAY),
+            endDate: new Date(ganttData.endDate.getTime() - delta / 2),
           })
         }
       >
@@ -91,7 +92,7 @@ export const Dummy: React.FC = () => {
         onClick={() =>
           setGanttData({
             ...ganttData,
-            endDate: new Date(ganttData.endDate.getTime() + MILLIS_IN_DAY),
+            endDate: new Date(ganttData.endDate.getTime() + delta / 2),
           })
         }
       >
@@ -111,15 +112,23 @@ type GanttViewerProps = {
 
 const GanttViewer: React.FC<GanttViewerProps> = (props) => {
   var [gantt, setGantt] = useState<Gantt<string, GanttData>>();
+  var [startRealtime, setStartRealtime] = useState<Date>(new Date());
+  var [nowBarTime, setNowBarTime] = useState<Date>(new Date());
 
   /* The useRef Hook creates a variable that "holds on" to a value across rendering
        passes. In this case it will hold our component's SVG DOM element. It's
        initialized null and React will assign it later (see the return statement) */
   const d3Container = useRef<HTMLDivElement>(null);
 
-  /* The useEffect Hook is for running side effects outside of React,
-       for instance inserting elements into the DOM using D3 */
+  //const onPixelDuration = useCallback((millis?: number) => {}, [timer]);
+
   useEffect(() => {
+    setStartRealtime(new Date());
+  }, []);
+
+  useEffect(() => {
+    const t0 = props.bars[0].startTime;
+
     console.log("E1");
     var gantt = new Gantt<string, GanttData>(d3Container.current!, {
       ...DEFAULT_OPTIONS,
@@ -134,6 +143,22 @@ const GanttViewer: React.FC<GanttViewerProps> = (props) => {
         fontSizes: [11, 11],
         roundness: 4,
       },
+    });
+
+    let timer: NodeJS.Timer | undefined;
+    const f = () => {
+      console.log("Tick " + new Date());
+      setNowBarTime(
+        new Date(t0.getTime() + new Date().getTime() - startRealtime.getTime())
+      );
+    };
+
+    gantt.onPixelDuration((millis) => {
+      console.log("clearing " + timer);
+      if (timer) clearInterval(timer);
+      const i = millis && Math.max(millis / 10, 50);
+      console.log("setting " + millis + "=>" + i);
+      timer = millis ? setInterval(f, i) : undefined;
     });
 
     const onEndDrag = (
@@ -239,6 +264,10 @@ const GanttViewer: React.FC<GanttViewerProps> = (props) => {
     gantt.onTooltip = (bar, tooltipNode) =>
       ReactDOM.render(<div>ciao</div>, tooltipNode);
     setGantt(gantt);
+    f();
+    return () => {
+      clearInterval(timer);
+    };
   }, []); //ony once
 
   useEffect(() => {
@@ -246,17 +275,24 @@ const GanttViewer: React.FC<GanttViewerProps> = (props) => {
     gantt?.setTimeRange(props.startDate, props.endDate);
     gantt?.reload(props.rows, props.bars);
     console.log(props.bars[0]);
+  }, [props, gantt]);
+
+  useEffect(() => {
     gantt?.setDecorations([
-      { type: "line", time: props.bars[0].startTime, class: "line1" },
+      { type: "line", time: nowBarTime, class: "line1" },
       {
         type: "line",
         time: new Date(props.bars[0].startTime.getTime() + 1000 * 3600 * 6),
         class: "line2",
       },
     ]);
-  }, [props, gantt]);
+  }, [nowBarTime]);
 
-  return <div className="very-simple-gantt" ref={d3Container} />;
+  return (
+    <>
+      <div className="very-simple-gantt" ref={d3Container} />
+    </>
+  );
 };
 
 function makeOne(startDate: Date) {

@@ -478,6 +478,31 @@ export class Gantt<R, T> {
     });
   }
 
+  private readonly pixelDurationListeners: ((millis: number) => void)[] = [];
+
+  onPixelDuration = (l: (millis?: number) => void) => {
+    this.pixelDurationListeners.push(l);
+    const millis = this.getPixelDuration();
+    l(millis);
+  };
+
+  offPixelDuration = (l: (millis?: number) => void) => {
+    const i = this.pixelDurationListeners.indexOf(l);
+    if (i > -1) this.pixelDurationListeners.splice(i, 1);
+  };
+
+  private notifyPixelDuration() {
+    const millis = this.getPixelDuration();
+    this.pixelDurationListeners.forEach((l) => l(millis));
+  }
+
+  private getPixelDuration() {
+    return (
+      this.scale &&
+      this.scale.invert(1).getTime() - this.scale.invert(0).getTime()
+    );
+  }
+
   cloneBars(sourceBars: GanttBar<T>[], destinationBars: GanttBar<T>[]) {
     sourceBars.forEach((b) => {
       const newBar: GanttBar<T> = { ...b };
@@ -505,6 +530,7 @@ export class Gantt<R, T> {
     this.loadHeaders();
     this.loadBars();
     this.loadDecorations();
+    this.notifyPixelDuration();
   };
 
   private loadTimeBar = () => {
