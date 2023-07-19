@@ -3,6 +3,7 @@ import * as d3 from "d3";
 import React, { useEffect, useRef, useState } from "react";
 import ReactDOM from "react-dom";
 import { DEFAULT_OPTIONS, Gantt, GanttBar, GanttRow } from "./components";
+import { addSeconds, differenceInSeconds } from "date-fns";
 
 const dateTimeReviver = function (key: any, value: any) {
   if (typeof value === "string") {
@@ -170,6 +171,13 @@ const GanttViewer: React.FC<GanttViewerProps> = (props) => {
       bars = JSON.parse(JSON.stringify(bars), (key, v) =>
         key.endsWith("Time") ? new Date(Date.parse(v)) : v
       ); //make a deep clone
+      const delta2 = differenceInSeconds(newStartTime, bar.startTime);
+      bars.forEach((b) => {
+        b.startTime = addSeconds(b.startTime, delta2);
+        b.endTime = addSeconds(b.endTime, delta2);
+      });
+      gantt.doUpdateBars(bars, false);
+      return;
       const draggedBarData = bar.data as GanttData;
       console.log(
         "dragging experiment " +

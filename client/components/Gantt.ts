@@ -61,6 +61,7 @@ export type GanttOptions = {
     fontFamily: string;
     fontSizes: number[];
     roundness?: number;
+    minimumTextSpace: number;
   };
   timebar: { height: number; ticks: number };
   debugAvoidHideTooltip?: boolean;
@@ -82,6 +83,7 @@ export const DEFAULT_OPTIONS: GanttOptions = {
   timebar: { height: 30, ticks: 30 },
   bars: {
     paddingLeft: 20,
+    minimumTextSpace: 20,
     paddingRight: 20,
     paddingBottom: 5,
     paddingTop: 5,
@@ -737,10 +739,16 @@ export class Gantt<R, T> {
       );
     };
 
+    const minimumTextSpace = this.options.bars.minimumTextSpace;
+
     function writeText(this: any, bar: GanttBar<T>, text: string) {
       if (noText) return;
       const width = textWidth(bar);
       const self = d3.select(this);
+      if (width <= minimumTextSpace) {
+        self.text("");
+        return;
+      }
       self.text(text);
       let textLength = self.node().getComputedTextLength();
       while (textLength > width && text.length > 0) {
