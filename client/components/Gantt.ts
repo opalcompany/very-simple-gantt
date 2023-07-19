@@ -229,7 +229,7 @@ export class Gantt<R, T> {
         this.onResize(bar, newEndTime, clonedBars);
       } else {
         bar.endTime = newEndTime;
-        this.doUpdateBars(this.bars);
+        this.doUpdateBars(this.bars, false);
       }
       const pn = d3.select<any, any>("#" + this.idToValidDomId(bar.id));
       //pn.raise().style("opacity", bar.opacity / 2)
@@ -284,7 +284,7 @@ export class Gantt<R, T> {
       } else {
         bar.startTime = newStartTime;
         bar.endTime = newEndTime;
-        this.doUpdateBars(this.bars);
+        this.doUpdateBars(this.bars, false);
       }
       d3.select("#" + this.idToValidDomId(this.draggedBarId!));
     }
@@ -451,7 +451,7 @@ export class Gantt<R, T> {
           })
       );
 
-    this.doUpdateBars(this.bars);
+    this.doUpdateBars(this.bars, false);
   }
 
   private onScroll = (ev: Event) => {
@@ -702,7 +702,7 @@ export class Gantt<R, T> {
       .attr("y2", this.yFor(this.options.rowHeight * this.rows.length));
   };
 
-  doUpdateBars = (nbars: GanttBar<T>[]) => {
+  doUpdateBars = (nbars: GanttBar<T>[], noText?: boolean) => {
     //var ids = d3.selectAll<SVGGElement, GanttBar>("g.ganttBar").data().map(b => b.id)
     //nbars = ids.map(id => nbars.find(b => b.id === id)!)
 
@@ -738,6 +738,7 @@ export class Gantt<R, T> {
     };
 
     function writeText(this: any, bar: GanttBar<T>, text: string) {
+      if (noText) return;
       const width = textWidth(bar);
       const self = d3.select(this);
       self.text(text);
