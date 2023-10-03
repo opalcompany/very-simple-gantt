@@ -220,10 +220,9 @@ export class Gantt<R, T> {
       const correctX = d3.pointer(event, el)[0];
       const delta = correctX - this.startXOfResizeEvent!;
       let newEndTime = this.scale.invert(this.resizingBarEndX! + delta);
-      // avoid bar shorter than one second
+      // avoid bar shorter than zero
       if (newEndTime < bar.startTime) {
-        newEndTime = bar.startTime;
-        newEndTime.setSeconds(newEndTime.getSeconds() + 1);
+        newEndTime = new Date(bar.startTime.getTime());
       }
       if (this.onResize) {
         const clonedBars: GanttBar<T>[] = [];
