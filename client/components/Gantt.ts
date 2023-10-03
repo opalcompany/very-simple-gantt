@@ -198,8 +198,6 @@ export class Gantt<R, T> {
   }
 
   private gOnStartResize(el: any, event: any, bar: GanttBar<T>): any {
-    console.log("start resize: " + bar.id + " " + bar.resizeble);
-
     if (!bar.resizeble) return;
 
     if (this.onStartResize) {
