@@ -736,23 +736,30 @@ export class Gantt<R, T> {
       );
     };
 
-    const minimumTextSpace = this.options.bars.minimumTextSpace;
+    const inTimeRange = (bar: GanttBar<T>) =>
+      bar.endTime.getTime() > this.startDate.getTime() &&
+      bar.startTime.getTime() < this.endDate.getTime();
 
     function writeText(this: any, bar: GanttBar<T>, text: string) {
+      const minimumTextSpace = this.options.bars.minimumTextSpace;
       if (noText) return;
-      const width = textWidth(bar);
       const self = d3.select(this);
+      if (!inTimeRange(bar)) return;
+
+      const width = textWidth(bar);
+
       if (width <= minimumTextSpace) {
         self.text("");
         return;
       }
       self.text(text);
-      let textLength = self.node().getComputedTextLength();
+      const node = self.node();
+      let textLength = node.getComputedTextLength();
       while (textLength > width && text.length > 0) {
         text = text.slice(0, -1);
         if (text.length === 0) self.text("");
         else self.text(text + "...");
-        textLength = self.node().getComputedTextLength();
+        textLength = node.getComputedTextLength();
       }
     }
 
