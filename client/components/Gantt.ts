@@ -104,13 +104,10 @@ export class Gantt<R, T> {
   private xAxis!: d3.Axis<Date>;
   // data
   private bars: GanttBar<T>[] = [];
-  private _rows: GanttRow<R>[] = [];
+  private rows: GanttRow<R>[] = [];
   private tooltip: d3.Selection<HTMLDivElement, unknown, any, any>;
-  private _decorations: LineDecoration[] = [];
+  private decorations: LineDecoration[] = [];
 
-  public get rows() {
-    return this._rows;
-  }
   // time range
   private startDate: Date = new Date();
   private endDate: Date = new Date();
@@ -140,25 +137,22 @@ export class Gantt<R, T> {
 
   // must return false if resizing is not allowed for the bar, true if allowed
   public onStartResize?: (resizedBar: GanttBar<T>) => boolean;
-  public onTooltip?: (
-    bar: GanttBar<T>,
-    tooltipNode: HTMLElement | null
-  ) => void;
+  public onTooltip?: (bar: GanttBar<T>) => void;
   public onResize?: (
     resizedBar: GanttBar<T>,
     newEndTime: Date,
     bars: GanttBar<T>[]
   ) => void;
   public onEndResize?: (resizedBar: GanttBar<T>, bars: GanttBar<T>[]) => void;
+  public readonly tooltipNode: HTMLElement | null;
 
-  private container: HTMLElement;
   private headerSvg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   private body: d3.Selection<HTMLDivElement, unknown, null, undefined>;
-  pannableSvg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
+  private pannableSvg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
 
   private height(): number {
     return (
-      this.options.rowHeight * this._rows.length + this.options.timebar.height
+      this.options.rowHeight * this.rows.length + this.options.timebar.height
     );
   }
 
@@ -344,7 +338,7 @@ export class Gantt<R, T> {
       .append("g")
       .attr("stroke", self.horizontalLinesColor);
 
-    for (let i = 0; i < self._rows.length; i++) {
+    for (let i = 0; i < self.rows.length; i++) {
       svgElementHorizontalLines
         .append("line")
         .attr("x1", this.options.headers.width)
@@ -363,10 +357,7 @@ export class Gantt<R, T> {
       this.tooltip.style("visibility", "visible");
       this.tooltip.selectAll().remove();
 
-      const tooltipNode = this.tooltip
-        .selectChild<HTMLElement>(".gantt-tooltip-content")
-        .node();
-      this.onTooltip(d, tooltipNode);
+      this.onTooltip(d);
 
       const wBox = d3
         .select<HTMLElement, any>("body")
@@ -426,7 +417,7 @@ export class Gantt<R, T> {
       .filter((bar: GanttBar<T>) => bar.draggable)
       .append("rect")
       .attr("class", "ganttBarHandle move")
-      .attr("width", (bar: GanttBar<T>) => this.options.bars.moveAnchor.width);
+      .attr("width", this.options.bars.moveAnchor.width);
 
     bars
       .filter((bar: GanttBar<T>) => bar.resizeble)
@@ -510,14 +501,14 @@ export class Gantt<R, T> {
   }
 
   reload = (rows: GanttRow<R>[], bars: GanttBar<T>[]) => {
-    this._rows = rows;
+    this.rows = rows;
     this.bars = bars;
     this.loadHeaders();
     this.loadBars();
   };
 
   setDecorations = (decorations: Decoration[]) => {
-    this._decorations = decorations;
+    this.decorations = decorations;
     this.loadDecorations();
   };
 
@@ -557,7 +548,7 @@ export class Gantt<R, T> {
     this.headerSvg.selectAll("g").remove();
     const svgElementsHeader = this.headerSvg
       .selectAll("g")
-      .data(this._rows)
+      .data(this.rows)
       .enter()
       .append("g");
 
@@ -587,7 +578,6 @@ export class Gantt<R, T> {
   };
 
   constructor(container: HTMLElement, options?: GanttOptions) {
-    this.container = container;
     this.options = options ?? DEFAULT_OPTIONS;
 
     const parent = d3
@@ -646,6 +636,9 @@ export class Gantt<R, T> {
       .style("display", "block");
 
     this.tooltip = this.makeTooltip(d3.select("body"));
+    this.tooltipNode = this.tooltip
+      .selectChild<HTMLElement>(".gantt-tooltip-content")
+      .node();
 
     this.pannableSvg.on("click", (e: { target: any }) => {
       console.log("clic! " + d3.select<any, GanttBar<T>>(e.target).datum().id);
@@ -661,12 +654,16 @@ export class Gantt<R, T> {
     //this.body.node()!.scrollBy(this.options.width, 0);
   }
 
+  dispose = () => {
+    this.tooltip.remove();
+  };
+
   private loadDecorations = () => {
     const self = this;
     const ds = this.pannableSvg.select(".decorations");
     ds.selectAll(`.${DECORATION_CLS}`).remove();
     ds.selectAll(`.${DECORATION_CLS}`)
-      .data(this._decorations)
+      .data(this.decorations)
       .enter()
       .each(function (d) {
         const el = d3.select(this).datum(d);
@@ -844,14 +841,4 @@ export class Gantt<R, T> {
     if (bar.id === this.resizingBarId) result.push(resizingClass);
     return result;
   };
-}
-
-function applyStyle(
-  it: d3.Selection<any, any, any, any>,
-  name: string,
-  value?: string | number | boolean,
-  priority?: null | "important"
-) {
-  value && it.style(name, value, priority);
-  return it;
 }
