@@ -104,7 +104,7 @@ export class Gantt<R, T> {
   private xAxis!: d3.Axis<Date>;
   // data
   private bars: GanttBar<T>[] = [];
-  private rows: GanttRow<R>[] = [];
+  private _rows: GanttRow<R>[] = [];
   private tooltip: d3.Selection<HTMLDivElement, unknown, any, any>;
   private decorations: LineDecoration[] = [];
 
@@ -126,6 +126,10 @@ export class Gantt<R, T> {
   //private resizingBarStartX?: number;
   private resizingBarEndX?: number;
   //private resizingBarY?: number;
+
+  public get rows() {
+    return this._rows;
+  }
 
   public onStartDrag?: (bar: GanttBar<T>) => boolean;
   public onDrag?: (
@@ -152,7 +156,7 @@ export class Gantt<R, T> {
 
   private height(): number {
     return (
-      this.options.rowHeight * this.rows.length + this.options.timebar.height
+      this.options.rowHeight * this._rows.length + this.options.timebar.height
     );
   }
 
@@ -338,7 +342,7 @@ export class Gantt<R, T> {
       .append("g")
       .attr("stroke", self.horizontalLinesColor);
 
-    for (let i = 0; i < self.rows.length; i++) {
+    for (let i = 0; i < self._rows.length; i++) {
       svgElementHorizontalLines
         .append("line")
         .attr("x1", this.options.headers.width)
@@ -501,7 +505,7 @@ export class Gantt<R, T> {
   }
 
   reload = (rows: GanttRow<R>[], bars: GanttBar<T>[]) => {
-    this.rows = rows;
+    this._rows = rows;
     this.bars = bars;
     this.loadHeaders();
     this.loadBars();
@@ -548,7 +552,7 @@ export class Gantt<R, T> {
     this.headerSvg.selectAll("g").remove();
     const svgElementsHeader = this.headerSvg
       .selectAll("g")
-      .data(this.rows)
+      .data(this._rows)
       .enter()
       .append("g");
 
@@ -695,7 +699,7 @@ export class Gantt<R, T> {
       .attr("x1", this.xForTime(0, line.time))
       .attr("x2", this.xForTime(0, line.time))
       .attr("y1", this.yFor(0))
-      .attr("y2", this.yFor(this.options.rowHeight * this.rows.length));
+      .attr("y2", this.yFor(this.options.rowHeight * this._rows.length));
   };
 
   doUpdateBars = (nbars: GanttBar<T>[], noText?: boolean) => {
