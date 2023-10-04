@@ -112,7 +112,7 @@ export class Gantt<R, T> {
   private startDate: Date = new Date();
   private endDate: Date = new Date();
   // appearance
-  private options: GanttOptions;
+  private readonly options: GanttOptions;
   public horizontalLinesColor: string = "#cbcdd6";
   // drag'n'drop
   private startXOfDragEvent?: number;
@@ -741,8 +741,9 @@ export class Gantt<R, T> {
       bar.endTime.getTime() > this.startDate.getTime() &&
       bar.startTime.getTime() < this.endDate.getTime();
 
+    const minimumTextSpace = this.options.bars.minimumTextSpace;
+
     function writeText(this: any, bar: GanttBar<T>, text: string) {
-      const minimumTextSpace = this.options.bars.minimumTextSpace;
       if (noText) return;
       const self = d3.select(this);
       if (!inTimeRange(bar)) return;
