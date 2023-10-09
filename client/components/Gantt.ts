@@ -645,7 +645,7 @@ export class Gantt<R, T> {
       .node();
 
     this.pannableSvg.on("click", (e: { target: any }) => {
-      console.log("clic! " + d3.select<any, GanttBar<T>>(e.target).datum().id);
+      console.log("clic! " + d3.select<any, GanttBar<T>>(e.target).datum()?.id);
     });
 
     this.pannableSvg.append("g").attr("class", "timeBar");
