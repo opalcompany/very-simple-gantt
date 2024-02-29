@@ -63,7 +63,17 @@ export type GanttOptions = {
     roundness?: number;
     minimumTextSpace: number;
   };
-  timebar: { height: number; ticks: number };
+  timebar: {
+    height: number;
+    timeFormatter?: (d: Date, index: number) => string;
+  } & (
+    | {
+      ticks: number;      
+    }
+    | {
+      tickValues: Iterable<Date>;      
+    }
+  );
   debugAvoidHideTooltip?: boolean;
 };
 
@@ -80,7 +90,7 @@ export const DEFAULT_OPTIONS: GanttOptions = {
   },
   rowHeight: 70,
   width: 2000,
-  timebar: { height: 30, ticks: 30 },
+  timebar: { height: 30, ticks: 30, tickValues:undefined },
   bars: {
     paddingLeft: 20,
     minimumTextSpace: 20,
@@ -533,11 +543,14 @@ export class Gantt<R, T> {
       .range([0, this.options.width - this.options.headers.width])
       .domain([this.startDate, this.endDate]);
 
-    this.xAxis = d3
-      .axisTop<Date>(this.scale)
-      //.ticks(d3.timeDay)
-      .ticks(this.options.timebar.ticks);
-    //.tickFormat(d=>d3.timeFormat("%B %Y")(d));
+    this.xAxis = d3.axisTop<Date>(this.scale);
+    if ("ticks" in this.options.timebar)
+      this.xAxis.ticks(this.options.timebar.ticks);
+    if (this.options.timebar.timeFormatter)
+      this.xAxis.tickFormat(this.options.timebar.timeFormatter);
+    if ("tickValues" in this.options.timebar)
+      this.xAxis.tickValues(this.options.timebar.tickValues);
+
     this.pannableSvg
       .select<SVGGElement>("g.timeBar")
       .attr(
