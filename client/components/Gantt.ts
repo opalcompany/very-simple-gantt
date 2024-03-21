@@ -68,11 +68,11 @@ export type GanttOptions = {
     timeFormatter?: (d: Date, index: number) => string;
   } & (
     | {
-      ticks: number;      
-    }
+        ticks: number;
+      }
     | {
-      tickValues: Iterable<Date>;      
-    }
+        tickValues: Iterable<Date>;
+      }
   );
   debugAvoidHideTooltip?: boolean;
 };
@@ -90,7 +90,7 @@ export const DEFAULT_OPTIONS: GanttOptions = {
   },
   rowHeight: 70,
   width: 2000,
-  timebar: { height: 30, ticks: 30, tickValues:undefined },
+  timebar: { height: 30, ticks: 30, tickValues: undefined },
   bars: {
     paddingLeft: 20,
     minimumTextSpace: 20,
@@ -159,7 +159,7 @@ export class Gantt<R, T> {
   ) => void;
   public onEndResize?: (resizedBar: GanttBar<T>, bars: GanttBar<T>[]) => void;
   public readonly tooltipNode: HTMLElement | null;
-
+  public onPan?: (timeRangeStart: Date, timeRangeEnd: Date) => void;
   private headerSvg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   private body: d3.Selection<HTMLDivElement, unknown, null, undefined>;
   private pannableSvg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
@@ -272,6 +272,17 @@ export class Gantt<R, T> {
       //.style("opacity", bar.opacity / 2)
       .attr("cursor", "grabbing")
       .raise();
+  }
+
+  private gOnPan(event: any) {
+    if (!this.onPan) return;
+    const newStartDate = new Date(
+      this.scale.invert(this.scale(this.startDate) - event.dx)
+    );
+    const newEndDate = new Date(
+      this.scale.invert(this.scale(this.endDate) - event.dx)
+    );
+    this.onPan(newStartDate, newEndDate);
   }
 
   private gOnDrag(el: Element, event: any, bar: GanttBar<T>) {
@@ -410,6 +421,7 @@ export class Gantt<R, T> {
           .on("start", function (event, d) {
             self.gOnStartDrag(this, event, d);
           })
+          .on("start", this.cursorForBar)
           .on("drag", function (event, d) {
             self.gOnDrag(this, event, d);
           })
@@ -419,8 +431,7 @@ export class Gantt<R, T> {
       )
       .on("mouseover", showTooltip)
       .on("mouseout", this._hideTooltip)
-      .attr("class", "ganttBar")
-      .attr("cursor", this.cursorForBar);
+      .attr("class", "ganttBar");
 
     const bars = svgElementBars;
     bars.append("rect").attr("class", "ganttBarRect");
@@ -596,6 +607,7 @@ export class Gantt<R, T> {
 
   constructor(container: HTMLElement, options?: GanttOptions) {
     this.options = options ?? DEFAULT_OPTIONS;
+    const self = this;
 
     const parent = d3
       .select(container)
@@ -657,9 +669,24 @@ export class Gantt<R, T> {
       .selectChild<HTMLElement>(".gantt-tooltip-content")
       .node();
 
-    this.pannableSvg.on("click", (e: { target: any }) => {
+    this.pannableSvg.on("click", (e: any) => {
       console.log("clic! " + d3.select<any, GanttBar<T>>(e.target).datum()?.id);
     });
+
+    this.pannableSvg.on(".drag", null).call(
+      d3drag
+        .drag<any, any>()
+        .filter((e: { ctrlKey: boolean }) => e.ctrlKey)
+        .on("start", () => {
+          this.pannableSvg.attr("cursor", "grab");
+        })
+        .on("drag", function (event) {
+          self.gOnPan(event);
+        })
+        .on("end", () => {
+          this.pannableSvg.attr("cursor", "default");
+        })
+    );
 
     this.pannableSvg.append("g").attr("class", "timeBar");
 
