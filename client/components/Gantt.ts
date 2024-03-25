@@ -21,6 +21,7 @@ import * as d3drag from "d3-drag";
 import { GanttBar } from "./GanttBar";
 import { GanttRow } from "./GanttRow";
 //import { Margins } from './Margins';
+import { D3DragEvent } from "d3";
 import "./style.scss";
 //require('./style.scss')
 
@@ -29,6 +30,11 @@ export { GanttBar, GanttRow };
 export type Decoration = LineDecoration;
 export type LineDecoration = { type: "line"; time: Date; class?: string };
 export type DecorationType = Decoration["type"];
+
+type MouseModifier = Pick<
+  MouseEvent,
+  "ctrlKey" | "metaKey" | "altKey" | "shiftKey"
+>;
 
 export type GanttOptions = {
   rowHeight: number;
@@ -159,7 +165,10 @@ export class Gantt<R, T> {
   ) => void;
   public onEndResize?: (resizedBar: GanttBar<T>, bars: GanttBar<T>[]) => void;
   public readonly tooltipNode: HTMLElement | null;
-  public onPan?: (timeRangeStart: Date, timeRangeEnd: Date) => void;
+  public pan?: {
+    mouseModifier: [...MouseModifier[], MouseModifier];
+    onPan: (deltaInMillis: number) => void;
+  };
   private headerSvg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   private body: d3.Selection<HTMLDivElement, unknown, null, undefined>;
   private pannableSvg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
@@ -274,15 +283,10 @@ export class Gantt<R, T> {
       .raise();
   }
 
-  private gOnPan(event: any) {
-    if (!this.onPan) return;
-    const newStartDate = new Date(
-      this.scale.invert(this.scale(this.startDate) - event.dx)
-    );
-    const newEndDate = new Date(
-      this.scale.invert(this.scale(this.endDate) - event.dx)
-    );
-    this.onPan(newStartDate, newEndDate);
+  private gOnPan(event: D3DragEvent<SVGSVGElement, unknown, unknown>) {
+    if (!this.pan) return;
+    const delta = this.scale(event.dx);
+    this.pan.onPan(delta * -1);
   }
 
   private gOnDrag(el: Element, event: any, bar: GanttBar<T>) {
@@ -675,14 +679,20 @@ export class Gantt<R, T> {
 
     this.pannableSvg.on(".drag", null).call(
       d3drag
-        .drag<any, any>()
-        .filter((e: { ctrlKey: boolean }) => e.ctrlKey)
+        .drag<SVGSVGElement, unknown>()
+        .filter(
+          (e: MouseEvent | TouchEvent) =>
+            e.ctrlKey || e.altKey || e.metaKey || e.shiftKey
+        )
         .on("start", () => {
           this.pannableSvg.attr("cursor", "grab");
         })
-        .on("drag", function (event) {
-          self.gOnPan(event);
-        })
+        .on(
+          "drag",
+          function (event: D3DragEvent<SVGSVGElement, unknown, unknown>) {
+            self.gOnPan(event);
+          }
+        )
         .on("end", () => {
           this.pannableSvg.attr("cursor", "default");
         })
