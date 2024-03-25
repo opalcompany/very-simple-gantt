@@ -169,9 +169,7 @@ const GanttViewer: React.FC<GanttViewerProps> = (props) => {
       bars: GanttBar<GanttData>[]
     ): void => {};
 
-    const onPan = (v1: Date, v2: Date) => {
-      gantt.setTimeRange(v1, v2);
-    };
+    const onPan = (delta: number) => {};
 
     const onDrag = (
       bar: GanttBar<GanttData>,
@@ -275,7 +273,12 @@ const GanttViewer: React.FC<GanttViewerProps> = (props) => {
     gantt.onEndDrag = onEndDrag;
     gantt.onDrag = onDrag;
     gantt.onResize = onResize;
-    gantt.onPan = onPan;
+    gantt.pan = {
+      onPan: onPan,
+      mouseModifier: [
+        { ctrlKey: true, altKey: true, metaKey: true, shiftKey: true },
+      ],
+    };
 
     gantt.onTooltip = (bar) =>
       ReactDOM.render(<div>ciao id: {bar.id}</div>, gantt.tooltipNode);
