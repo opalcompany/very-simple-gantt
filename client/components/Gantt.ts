@@ -287,13 +287,7 @@ export class Gantt<R, T> {
     if (!this.pan) return;
     const deltaInMillis =
       this.scale.invert(-event.dx).getTime() - this.startDate.getTime();
-    this.setTimeRange(
-      new Date(this.startDate.getTime() + deltaInMillis),
-      new Date(this.endDate.getTime() + deltaInMillis)
-    );
-    /*this.pan.onPan(
-      this.scale.invert(-event.dx).getTime() - this.startDate.getTime()
-    );*/
+    this.pan.onPan(deltaInMillis);
   }
 
   private gOnDrag(el: Element, event: any, bar: GanttBar<T>) {
