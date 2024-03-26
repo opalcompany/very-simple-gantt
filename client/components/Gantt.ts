@@ -285,8 +285,9 @@ export class Gantt<R, T> {
 
   private gOnPan(event: D3DragEvent<SVGSVGElement, unknown, unknown>) {
     if (!this.pan) return;
-    const delta = this.scale(event.dx);
-    this.pan.onPan(delta * -1);
+    this.pan.onPan(
+      this.scale.invert(-event.dx).getTime() - this.startDate.getTime()
+    );
   }
 
   private gOnDrag(el: Element, event: any, bar: GanttBar<T>) {
@@ -687,12 +688,9 @@ export class Gantt<R, T> {
         .on("start", () => {
           this.pannableSvg.attr("cursor", "grab");
         })
-        .on(
-          "drag",
-          function (event: D3DragEvent<SVGSVGElement, unknown, unknown>) {
-            self.gOnPan(event);
-          }
-        )
+        .on("drag", (event: D3DragEvent<SVGSVGElement, unknown, unknown>) => {
+          self.gOnPan(event);
+        })
         .on("end", () => {
           this.pannableSvg.attr("cursor", "default");
         })
