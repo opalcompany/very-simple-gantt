@@ -275,9 +275,12 @@ const GanttViewer: React.FC<GanttViewerProps> = (props) => {
     gantt.onResize = onResize;
     gantt.pan = {
       onPan: onPan,
-      mouseModifier: [
-        { ctrlKey: true, altKey: true, metaKey: true, shiftKey: true },
-      ],
+      mouseModifier: {
+        ctrlKey: true,
+        altKey: true,
+        metaKey: false,
+        shiftKey: false,
+      },
     };
 
     gantt.onTooltip = (bar) =>

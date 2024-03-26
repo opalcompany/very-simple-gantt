@@ -166,7 +166,7 @@ export class Gantt<R, T> {
   public onEndResize?: (resizedBar: GanttBar<T>, bars: GanttBar<T>[]) => void;
   public readonly tooltipNode: HTMLElement | null;
   public pan?: {
-    mouseModifier: [...MouseModifier[], MouseModifier];
+    mouseModifier: MouseModifier;
     onPan: (deltaInMillis: number) => void;
   };
   private headerSvg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
@@ -285,9 +285,15 @@ export class Gantt<R, T> {
 
   private gOnPan(event: D3DragEvent<SVGSVGElement, unknown, unknown>) {
     if (!this.pan) return;
-    this.pan.onPan(
-      this.scale.invert(-event.dx).getTime() - this.startDate.getTime()
+    const deltaInMillis =
+      this.scale.invert(-event.dx).getTime() - this.startDate.getTime();
+    this.setTimeRange(
+      new Date(this.startDate.getTime() + deltaInMillis),
+      new Date(this.endDate.getTime() + deltaInMillis)
     );
+    /*this.pan.onPan(
+      this.scale.invert(-event.dx).getTime() - this.startDate.getTime()
+    );*/
   }
 
   private gOnDrag(el: Element, event: any, bar: GanttBar<T>) {
@@ -683,7 +689,10 @@ export class Gantt<R, T> {
         .drag<SVGSVGElement, unknown>()
         .filter(
           (e: MouseEvent | TouchEvent) =>
-            e.ctrlKey || e.altKey || e.metaKey || e.shiftKey
+            ((this.pan?.mouseModifier.ctrlKey || false) && e.ctrlKey) ||
+            ((this.pan?.mouseModifier.altKey || false) && e.altKey) ||
+            ((this.pan?.mouseModifier.metaKey || false) && e.metaKey) ||
+            ((this.pan?.mouseModifier.shiftKey || false) && e.shiftKey)
         )
         .on("start", () => {
           this.pannableSvg.attr("cursor", "grab");
