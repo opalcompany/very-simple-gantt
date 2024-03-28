@@ -140,12 +140,12 @@ const GanttViewer: React.FC<GanttViewerProps> = (props) => {
         fontSizes: [11, 11],
         roundness: 4,
       },
-      timebar:{
+      timebar: {
         ...DEFAULT_OPTIONS.timebar,
         //tickValues: [new Date(1689760801000)],
         ticks: 3,
-        timeFormatter: d => d.getTime()/1000 + " s",        
-      }
+        timeFormatter: (d) => d.getTime() / 1000 + " s",
+      },
     });
 
     let timer: NodeJS.Timer | undefined;
@@ -168,6 +168,8 @@ const GanttViewer: React.FC<GanttViewerProps> = (props) => {
       bar: GanttBar<GanttData>,
       bars: GanttBar<GanttData>[]
     ): void => {};
+
+    const onPan = (delta: number) => {};
 
     const onDrag = (
       bar: GanttBar<GanttData>,
@@ -270,8 +272,11 @@ const GanttViewer: React.FC<GanttViewerProps> = (props) => {
 
     gantt.onEndDrag = onEndDrag;
     gantt.onDrag = onDrag;
-    gantt.onResize = onResize;    
-    
+    gantt.onResize = onResize;
+    gantt.pan = {
+      onPan: onPan,
+      mouseModifiers: ["ctrlKey", "shiftKey"],
+    };
 
     gantt.onTooltip = (bar) =>
       ReactDOM.render(<div>ciao id: {bar.id}</div>, gantt.tooltipNode);
