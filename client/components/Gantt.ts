@@ -321,10 +321,10 @@ export class Gantt<R, T> {
       if (this.onEndDrag) {
         this.onEndDrag(bar, this.bars);
       }
-      d3.select<any, GanttBar<T>>("#" + this.idToValidDomId(this.draggedBarId!))
-        .classed(draggingClass, false)
-        //.style("opacity", null) //bar.opacity)
-        .attr("cursor", this.cursorForBar);
+      d3.select<any, GanttBar<T>>(
+        "#" + this.idToValidDomId(this.draggedBarId!)
+      ).classed(draggingClass, false);
+      //.style("opacity", null) //bar.opacity)
     }
     this.draggedBarId = undefined;
   }
@@ -510,9 +510,6 @@ export class Gantt<R, T> {
   private _hideTooltip = () => {
     this.options.debugAvoidHideTooltip || this.hideTooltip();
   };
-
-  private cursorForBar = (bar: GanttBar<T>) =>
-    bar.draggable ? "grab" : "default";
 
   public assignBars(sourceBars: GanttBar<T>[], destinationBars: GanttBar<T>[]) {
     sourceBars.forEach((b) => {
