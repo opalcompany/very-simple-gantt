@@ -685,7 +685,7 @@ export class Gantt<R, T> {
 
     this.body = parent
       .append("div")
-      .style("overflow-x", "scroll")
+      .style("overflow-x", "auto")
       .style("-webkit-overflow-scrolling", "touch");
 
     this.pannableSvg = this.body
