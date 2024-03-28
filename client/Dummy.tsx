@@ -169,7 +169,9 @@ const GanttViewer: React.FC<GanttViewerProps> = (props) => {
       bars: GanttBar<GanttData>[]
     ): void => {};
 
-    const onPan = (delta: number) => {};
+    const onPan = (delta: number) => {
+      console.log("pan", delta);
+    };
 
     const onDrag = (
       bar: GanttBar<GanttData>,
@@ -275,7 +277,7 @@ const GanttViewer: React.FC<GanttViewerProps> = (props) => {
     gantt.onResize = onResize;
     gantt.pan = {
       onPan: onPan,
-      mouseModifiers: ["ctrlKey", "shiftKey"],
+      mouseModifiers: ["ctrlKey"],
     };
 
     gantt.onTooltip = (bar) =>
