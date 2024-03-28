@@ -278,10 +278,10 @@ export class Gantt<R, T> {
     this.draggedBarEndX = this.scale(bar.endTime);
     this.draggedBarId = bar.id;
     this.draggedBarY = this.calculateBarY(bar);
+    document.body.style.cursor = "grab";
     d3.select("#" + this.idToValidDomId(this.draggedBarId!))
       .classed(draggingClass, true)
       //.style("opacity", bar.opacity / 2)
-      .attr("cursor", "grabbing")
       .raise();
   }
 
@@ -315,7 +315,8 @@ export class Gantt<R, T> {
     }
   }
 
-  private gOnEndDrag(el: Element, event: any, bar: GanttBar<T>): any {
+  private gOnEndDrag(_el: Element, event: any, bar: GanttBar<T>): any {
+    document.body.style.cursor = "default";
     if (this.draggedBarId) {
       if (this.onEndDrag) {
         this.onEndDrag(bar, this.bars);
