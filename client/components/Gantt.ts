@@ -31,7 +31,7 @@ export type Decoration = LineDecoration;
 export type LineDecoration = { type: "line"; time: Date; class?: string };
 export type DecorationType = Decoration["type"];
 
-type MouseModifier = Pick<
+type MouseModifier = keyof Pick<
   MouseEvent,
   "ctrlKey" | "metaKey" | "altKey" | "shiftKey"
 >;
@@ -166,7 +166,7 @@ export class Gantt<R, T> {
   public onEndResize?: (resizedBar: GanttBar<T>, bars: GanttBar<T>[]) => void;
   public readonly tooltipNode: HTMLElement | null;
   public pan?: {
-    mouseModifier: MouseModifier;
+    mouseModifiers: [...MouseModifier[], MouseModifier];
     onPan: (deltaInMillis: number) => void;
   };
   private headerSvg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
@@ -681,13 +681,16 @@ export class Gantt<R, T> {
     this.pannableSvg.on(".drag", null).call(
       d3drag
         .drag<SVGSVGElement, unknown>()
-        .filter(
-          (e: MouseEvent | TouchEvent) =>
-            ((this.pan?.mouseModifier.ctrlKey || false) && e.ctrlKey) ||
-            ((this.pan?.mouseModifier.altKey || false) && e.altKey) ||
-            ((this.pan?.mouseModifier.metaKey || false) && e.metaKey) ||
-            ((this.pan?.mouseModifier.shiftKey || false) && e.shiftKey)
-        )
+        .filter((e: MouseEvent | TouchEvent) => {
+          if (!this.pan) return false;
+          const wrongModifiers = [
+            e.ctrlKey !== (this.pan.mouseModifiers.indexOf("ctrlKey") !== -1),
+            e.metaKey !== (this.pan.mouseModifiers.indexOf("metaKey") !== -1),
+            e.shiftKey !== (this.pan.mouseModifiers.indexOf("shiftKey") !== -1),
+            e.altKey !== (this.pan.mouseModifiers.indexOf("altKey") !== -1),
+          ].filter((m) => m);
+          return wrongModifiers.length === 0;
+        })
         .on("start", () => {
           this.pannableSvg.attr("cursor", "grab");
         })
