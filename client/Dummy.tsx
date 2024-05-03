@@ -173,6 +173,10 @@ const GanttViewer: React.FC<GanttViewerProps> = (props) => {
       console.log("pan", delta);
     };
 
+    const onZoom = (leftDelta: number, rightDelta: number) => {
+      console.log("zooming", leftDelta, rightDelta);
+    };
+
     const onDrag = (
       bar: GanttBar<GanttData>,
       newStartTime: Date,
@@ -277,7 +281,12 @@ const GanttViewer: React.FC<GanttViewerProps> = (props) => {
     gantt.onResize = onResize;
     gantt.pan = {
       onPan: onPan,
-      mouseModifiers: ["ctrlKey"],
+      mouseModifiers: ["altKey"],
+    };
+    gantt.zoom = {
+      onZoom: onZoom,
+      factor: 1,
+      mouseModifiers: ["altKey"],
     };
 
     gantt.onTooltip = (bar) =>
