@@ -357,6 +357,8 @@ export class Gantt<R, T> {
     const actualMouseX = event.offsetX - this.options.headers.width;
     if (actualMouseX < 0) return;
 
+    event.preventDefault();
+
     const startTime = this.startDate.getTime();
     const endTime = this.endDate.getTime();
     const leftPixels = actualMouseX - this.scale(startTime);
@@ -419,7 +421,6 @@ export class Gantt<R, T> {
   };
 
   private checkPanModifiers(e: MouseEvent | TouchEvent) {
-    console.log("here", this.pan, e);
     if (!this.pan) return false;
     return this.checkMouseModifiers(e, this.pan.mouseModifiers);
   }
