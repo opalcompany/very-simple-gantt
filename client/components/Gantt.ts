@@ -149,6 +149,9 @@ export class Gantt<R, T> {
     return this._rows;
   }
 
+  public onClickGantt?: () => void;
+  public onClickBar?: (bar: GanttBar<T>) => void;
+
   public onStartDrag?: (bar: GanttBar<T>) => boolean;
   public onDrag?: (
     bar: GanttBar<T>,
@@ -223,6 +226,18 @@ export class Gantt<R, T> {
 
   private yFor(y: number): number {
     return this.options.timebar.height + y;
+  }
+
+  private gOnClickGantt() {
+    if (!this.onClickGantt) return;
+    this.onClickGantt();
+  }
+
+  private gOnClickBar(event: PointerEvent, bar: GanttBar<T>) {
+    if (!this.onClickBar) return;
+    this.onClickBar(bar);
+    event.preventDefault();
+    event.stopPropagation();
   }
 
   private gOnStartResize(
@@ -511,6 +526,7 @@ export class Gantt<R, T> {
       .append("g")
       .on("click", (event: PointerEvent, bar: GanttBar<T>) => {
         d3.select("#" + this.idToValidDomId(bar.id)).lower();
+        self.gOnClickBar(event, bar);
       })
       .call(
         d3drag
@@ -769,6 +785,9 @@ export class Gantt<R, T> {
     this.pannableSvg
       .on("wheel", function (event: WheelEvent) {
         if (self.checkZoomModifiers(event)) self.gOnZoom(this, event);
+      })
+      .on("click", function (_event: PointerEvent) {
+        self.gOnClickGantt();
       })
       .call(
         d3drag
