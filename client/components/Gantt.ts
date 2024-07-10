@@ -135,7 +135,6 @@ export class Gantt<R, T> {
   private draggedBarStartX?: number;
   private draggedBarEndX?: number;
   private draggedBarId?: string;
-  private draggedBarY?: number;
   // resizing
   private resizingBarId?: string;
   private startXOfResizeEvent?: number;
@@ -160,7 +159,6 @@ export class Gantt<R, T> {
 
   // must return false if resizing is not allowed for the bar, true if allowed
   public onStartResize?: (resizedBar: GanttBar<T>) => boolean;
-  public onTooltip?: (bar: GanttBar<T>) => void;
   public onResize?: (
     resizedBar: GanttBar<T>,
     newEndTime: Date,
@@ -168,15 +166,20 @@ export class Gantt<R, T> {
   ) => void;
   public onEndResize?: (resizedBar: GanttBar<T>, bars: GanttBar<T>[]) => void;
   public readonly tooltipNode: HTMLElement | null;
+
+  public onTooltip?: (bar: GanttBar<T>) => void;
+
   public pan?: {
     mouseModifiers: [...MouseModifier[], MouseModifier];
     onPan: (deltaInMillis: number) => void;
   };
+
   public zoom?: {
     mouseModifiers: [...MouseModifier[], MouseModifier];
     onZoom: (leftDeltaInMillis: number, rightDeltaInMillis: number) => void;
     factor: number;
   };
+
   private headerSvg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
   private body: d3.Selection<HTMLDivElement, unknown, null, undefined>;
   private pannableSvg: d3.Selection<SVGSVGElement, unknown, null, undefined>;
@@ -222,12 +225,13 @@ export class Gantt<R, T> {
     return this.options.timebar.height + y;
   }
 
-  private gOnStartResize(el: any, event: any, bar: GanttBar<T>): any {
+  private gOnStartResize(
+    el: any,
+    event: D3DragEvent<any, any, any>,
+    bar: GanttBar<T>
+  ): any {
     if (!bar.resizeble) return;
-
-    if (this.onStartResize) {
-      if (!this.onStartResize(bar)) return;
-    }
+    if (this.onStartResize && !this.onStartResize(bar)) return;
 
     this.startXOfResizeEvent = d3.pointer(event, el)[0];
     this.resizingBarEndX = this.scale(bar.endTime);
@@ -237,33 +241,42 @@ export class Gantt<R, T> {
     //pn.raise().style("opacity", bar.opacity / 2)
     pn.raise().classed(resizingClass, true);
     document.body.style.cursor = "e-resize";
+    event.sourceEvent.preventDefault();
   }
 
-  private gOnResize(el: any, event: any, bar: GanttBar<T>): any {
-    if (this.resizingBarId) {
-      const correctX = d3.pointer(event, el)[0];
-      const delta = correctX - this.startXOfResizeEvent!;
-      let newEndTime = this.scale.invert(this.resizingBarEndX! + delta);
-      // avoid bar shorter than zero
-      if (newEndTime < bar.startTime) {
-        newEndTime = new Date(bar.startTime.getTime());
-      }
-      if (this.onResize) {
-        const clonedBars: GanttBar<T>[] = [];
-        this.cloneBars(this.bars, clonedBars);
-        this.onResize(bar, newEndTime, clonedBars);
-      } else {
-        bar.endTime = newEndTime;
-        this.doUpdateBars(this.bars, false);
-      }
-      const pn = d3.select<any, any>("#" + this.idToValidDomId(bar.id));
-      //pn.raise().style("opacity", bar.opacity / 2)
-      pn.raise();
+  private gOnResize(
+    el: any,
+    event: D3DragEvent<any, any, any>,
+    bar: GanttBar<T>
+  ): any {
+    if (!this.resizingBarId) return;
+    const correctX = d3.pointer(event, el)[0];
+    const delta = correctX - this.startXOfResizeEvent!;
+    let newEndTime = this.scale.invert(this.resizingBarEndX! + delta);
+    // avoid bar shorter than zero
+    if (newEndTime < bar.startTime) {
+      newEndTime = new Date(bar.startTime.getTime());
     }
+    if (this.onResize) {
+      const clonedBars: GanttBar<T>[] = [];
+      this.cloneBars(this.bars, clonedBars);
+      this.onResize(bar, newEndTime, clonedBars);
+    } else {
+      bar.endTime = newEndTime;
+      this.doUpdateBars(this.bars, false);
+    }
+    const pn = d3.select<any, any>("#" + this.idToValidDomId(bar.id));
+    //pn.raise().style("opacity", bar.opacity / 2)
+    pn.raise();
+    event.sourceEvent.preventDefault();
   }
 
-  private gOnEndResize(_el: any, event: any, bar: GanttBar<T>): any {
-    document.body.style.cursor = "default";
+  private gOnEndResize(
+    _el: any,
+    event: D3DragEvent<any, any, any>,
+    bar: GanttBar<T>
+  ): any {
+    if (!this.resizingBarId) return;
     const pn = d3.select<any, any>("#" + this.idToValidDomId(bar.id));
     //pn.style("opacity", null)
     pn.classed(resizingClass, false);
@@ -273,61 +286,70 @@ export class Gantt<R, T> {
       this.cloneBars(this.bars, clonedBars);
       this.onEndResize(bar, clonedBars);
     }
+    document.body.style.cursor = "default";
+    event.sourceEvent.preventDefault();
   }
 
-  private gOnStartDrag(_el: Element, event: any, bar: GanttBar<T>): any {
+  private gOnStartDrag(
+    _el: Element,
+    event: D3DragEvent<any, any, any>,
+    bar: GanttBar<T>
+  ): any {
     this.draggedBarId = undefined;
     if (!bar.draggable) return;
-    if (this.onStartDrag) {
-      if (!this.onStartDrag(bar)) return;
-    }
+    if (this.onStartDrag && !this.onStartDrag(bar)) return;
     this.startXOfDragEvent = event.x;
     this.draggedBarStartX = this.scale(bar.startTime);
     this.draggedBarEndX = this.scale(bar.endTime);
     this.draggedBarId = bar.id;
-    this.draggedBarY = this.calculateBarY(bar);
     document.body.style.cursor = "grab";
-    d3.select("#" + this.idToValidDomId(this.draggedBarId!))
-      .classed(draggingClass, true)
-      //.style("opacity", bar.opacity / 2)
-      .raise();
+    d3.select("#" + this.idToValidDomId(this.draggedBarId!)).classed(
+      draggingClass,
+      true
+    );
+    event.sourceEvent.preventDefault();
   }
 
-  private gOnDrag(_el: Element, event: any, bar: GanttBar<T>) {
-    if (this.draggedBarId) {
-      const delta = event.x - this.startXOfDragEvent!;
-      let newStartTime = new Date(
-        this.scale.invert(this.draggedBarStartX! + delta)
-      );
-      let newEndTime = new Date(
-        this.scale.invert(this.draggedBarEndX! + delta)
-      );
+  private gOnDrag(
+    _el: Element,
+    event: D3DragEvent<any, any, any>,
+    bar: GanttBar<T>
+  ) {
+    if (!this.draggedBarId) return;
+    const delta = event.x - this.startXOfDragEvent!;
+    let newStartTime = new Date(
+      this.scale.invert(this.draggedBarStartX! + delta)
+    );
+    let newEndTime = new Date(this.scale.invert(this.draggedBarEndX! + delta));
 
-      if (this.onDrag) {
-        const clonedBars: GanttBar<T>[] = [];
-        this.cloneBars(this.bars, clonedBars);
-        this.onDrag(bar, newStartTime, clonedBars);
-      } else {
-        bar.startTime = newStartTime;
-        bar.endTime = newEndTime;
-        this.doUpdateBars(this.bars, false);
-      }
-      d3.select("#" + this.idToValidDomId(this.draggedBarId!));
+    if (this.onDrag) {
+      const clonedBars: GanttBar<T>[] = [];
+      this.cloneBars(this.bars, clonedBars);
+      this.onDrag(bar, newStartTime, clonedBars);
+    } else {
+      bar.startTime = newStartTime;
+      bar.endTime = newEndTime;
+      this.doUpdateBars(this.bars, false);
     }
+    d3.select("#" + this.idToValidDomId(this.draggedBarId!));
+    event.sourceEvent.preventDefault();
   }
 
-  private gOnEndDrag(_el: Element, event: any, bar: GanttBar<T>): any {
-    document.body.style.cursor = "default";
-    if (this.draggedBarId) {
-      if (this.onEndDrag) {
-        this.onEndDrag(bar, this.bars);
-      }
-      d3.select<any, GanttBar<T>>(
-        "#" + this.idToValidDomId(this.draggedBarId!)
-      ).classed(draggingClass, false);
-      //.style("opacity", null) //bar.opacity)
+  private gOnEndDrag(
+    _el: Element,
+    event: D3DragEvent<any, any, any>,
+    bar: GanttBar<T>
+  ): any {
+    if (!this.draggedBarId) return;
+    if (this.onEndDrag) {
+      this.onEndDrag(bar, this.bars);
     }
+    d3.select<any, GanttBar<T>>(
+      "#" + this.idToValidDomId(this.draggedBarId!)
+    ).classed(draggingClass, false);
     this.draggedBarId = undefined;
+    document.body.style.cursor = "default";
+    event.sourceEvent.preventDefault();
   }
 
   private gOnStartPan(_el: Element, event: D3DragEvent<any, any, any>) {
@@ -335,29 +357,30 @@ export class Gantt<R, T> {
     this.startTimeOfPanEvent = this.startDate.getTime();
     this.startXOfPanEvent = event.x;
     document.body.style.cursor = "grab";
+    event.sourceEvent.stopPropagation();
   }
 
   private gOnPan(_el: Element, event: D3DragEvent<any, any, any>) {
-    if (!this.pan) return;
+    if (!this.pan || this.startTimeOfPanEvent === undefined) return;
     const deltaInPxs = event.x - this.startXOfPanEvent!;
     const deltaInMillisAbs = this.scale.invert(deltaInPxs).getTime();
     const deltaInMillis = this.startTimeOfPanEvent! - deltaInMillisAbs;
     this.pan.onPan(deltaInMillis);
+    event.sourceEvent.stopPropagation();
   }
 
-  private gOnEndPan(_el: Element, _event: D3DragEvent<any, any, any>) {
-    if (!this.pan) return;
+  private gOnEndPan(_el: Element, event: D3DragEvent<any, any, any>) {
+    if (this.startTimeOfPanEvent === undefined) return;
     this.startTimeOfPanEvent = undefined;
     this.startXOfPanEvent = undefined;
     document.body.style.cursor = "default";
+    event.sourceEvent.stopPropagation();
   }
 
   private gOnZoom(_el: Element, event: WheelEvent) {
     if (!this.zoom) return;
     const actualMouseX = event.offsetX - this.options.headers.width;
     if (actualMouseX < 0) return;
-
-    event.preventDefault();
 
     const startTime = this.startDate.getTime();
     const endTime = this.endDate.getTime();
@@ -371,6 +394,9 @@ export class Gantt<R, T> {
     const leftMillis = startTime - this.scale.invert(leftPadding).getTime();
     const rightMilis = startTime - this.scale.invert(rightPadding).getTime();
     this.zoom.onZoom(leftMillis, rightMilis);
+
+    event.preventDefault();
+    event.stopPropagation();
   }
 
   private barWidth = (bar: GanttBar<T>) => {
@@ -483,7 +509,7 @@ export class Gantt<R, T> {
       .data(this.bars, (bar: GanttBar<T>) => bar.id)
       .enter()
       .append("g")
-      .on("click", (e: { target: any }, bar: GanttBar<T>) => {
+      .on("click", (event: PointerEvent, bar: GanttBar<T>) => {
         d3.select("#" + this.idToValidDomId(bar.id)).lower();
       })
       .call(
@@ -493,19 +519,13 @@ export class Gantt<R, T> {
           // event is the d3 event
           // d is the datum aka GanttBar
           .on("start", function (event, d) {
-            if (self.checkPanModifiers(event.sourceEvent))
-              self.gOnStartPan(this, event);
-            else self.gOnStartDrag(this, event, d);
+            self.gOnStartDrag(this, event, d);
           })
           .on("drag", function (event, d) {
-            if (self.checkPanModifiers(event.sourceEvent))
-              self.gOnPan(this, event);
-            else self.gOnDrag(this, event, d);
+            self.gOnDrag(this, event, d);
           })
           .on("end", function (event, d) {
-            if (self.checkPanModifiers(event.sourceEvent))
-              self.gOnEndPan(this, event);
-            else self.gOnEndDrag(this, event, d);
+            self.gOnEndDrag(this, event, d);
           })
       )
       .on("mouseover", showTooltip)
@@ -536,19 +556,13 @@ export class Gantt<R, T> {
           // event is the d3 event
           // d is the datum aka GanttBar
           .on("start", function (event: D3DragEvent<any, GanttBar<T>, any>, d) {
-            if (self.checkPanModifiers(event.sourceEvent))
-              self.gOnStartPan(this, event);
-            else self.gOnStartResize(d3.select(this), event, d);
+            self.gOnStartResize(d3.select(this), event, d);
           })
           .on("drag", function (event: D3DragEvent<any, GanttBar<T>, any>, d) {
-            if (self.checkPanModifiers(event.sourceEvent))
-              self.gOnPan(this, event);
-            else self.gOnResize(d3.select(this), event, d);
+            self.gOnResize(d3.select(this), event, d);
           })
           .on("end", function (event: D3DragEvent<any, GanttBar<T>, any>, d) {
-            if (self.checkPanModifiers(event.sourceEvent))
-              self.gOnEndPan(this, event);
-            else self.gOnEndResize(d3.select(this), event, d);
+            self.gOnEndResize(d3.select(this), event, d);
           })
       );
 
@@ -752,33 +766,33 @@ export class Gantt<R, T> {
       .selectChild<HTMLElement>(".gantt-tooltip-content")
       .node();
 
-    this.pannableSvg.call(
-      d3drag
-        .drag<any, any>()
-        .filter(this.checkPanModifiers.bind(self))
-        .on(
-          "start",
-          function (event: D3DragEvent<SVGSVGElement, unknown, unknown>) {
-            self.gOnStartPan(this, event);
-          }
-        )
-        .on(
-          "drag",
-          function (event: D3DragEvent<SVGSVGElement, unknown, unknown>) {
-            self.gOnPan(this, event);
-          }
-        )
-        .on(
-          "end",
-          function (event: D3DragEvent<SVGSVGElement, unknown, unknown>) {
-            self.gOnEndPan(this, event);
-          }
-        )
-    );
-
-    this.pannableSvg.on("wheel", function (event: WheelEvent) {
-      if (self.checkZoomModifiers(event)) self.gOnZoom(this, event);
-    });
+    this.pannableSvg
+      .on("wheel", function (event: WheelEvent) {
+        if (self.checkZoomModifiers(event)) self.gOnZoom(this, event);
+      })
+      .call(
+        d3drag
+          .drag<any, any>()
+          .filter(this.checkPanModifiers.bind(self))
+          .on(
+            "start",
+            function (event: D3DragEvent<SVGSVGElement, unknown, unknown>) {
+              self.gOnStartPan(this, event);
+            }
+          )
+          .on(
+            "drag",
+            function (event: D3DragEvent<SVGSVGElement, unknown, unknown>) {
+              self.gOnPan(this, event);
+            }
+          )
+          .on(
+            "end",
+            function (event: D3DragEvent<SVGSVGElement, unknown, unknown>) {
+              self.gOnEndPan(this, event);
+            }
+          )
+      );
 
     this.pannableSvg.append("g").attr("class", "timeBar");
 
