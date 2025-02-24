@@ -1,6 +1,6 @@
 {
   "name": "@opalcompany/very-simple-gantt",
-  "version": "1.1.16",
+  "version": "1.1.17",
   "description": "Gantt Project",
   "main": "build/very-simple-gantt.js",
   "types": "build/",
