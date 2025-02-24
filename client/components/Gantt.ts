@@ -426,7 +426,9 @@ export class Gantt<R, T> {
       .attr("class", "gantt-tooltip")
       .style("position", "absolute")
       .style("z-index", 10)
-      .style("visibility", "hidden");
+      .style("visibility", "hidden")
+      .style("left", "0px")
+      .style("top", "0px");
     const a = result
       .append("svg")
       .attr("class", "gantt-arrow")
