@@ -645,6 +645,7 @@ export class Gantt<R, T> {
     this.bars = bars;
     this.loadHeaders();
     this.loadBars();
+    this.loadDecorations();
   };
 
   setDecorations = (decorations: Decoration[]) => {
